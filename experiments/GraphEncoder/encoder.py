@@ -1,4 +1,4 @@
-import torch_geometric
+import torch
 import pandas as pd
 import numpy as np
 from math import radians, cos, sin, asin, sqrt
@@ -10,12 +10,13 @@ class DistanceGraphEncoder:
     def __init__(self, data: pd.DataFrame, max_edge_distance: int):
         self.data = data
         self.threshold = max_edge_distance
-        self.coordinates = ['Longtitude', 'Latitude']
+        self.coordinates = ['Longtitude', 'Lattitude']
     
     
-    def transform(self) -> np.ndarray:
+    def transform(self) -> torch.Tensor:
         edges = []
         positions = self.data[self.coordinates].to_numpy()
+        
         for i in range(positions.shape[0] - 1):
             for j in range(i + 1, positions.shape[0] - 1):
                 dist = self._distance(positions[i, :], positions[j, :])
@@ -23,7 +24,7 @@ class DistanceGraphEncoder:
                     edges.append((i, j))
                     
         # COO format
-        return [[e[0] for e in edges], [e[1] for e in edges]]
+        return torch.tensor([[e[0] for e in edges], [e[1] for e in edges]])
                 
     
     # Haversine formula
