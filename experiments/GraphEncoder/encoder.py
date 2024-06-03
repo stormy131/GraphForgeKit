@@ -11,20 +11,29 @@ class DistanceGraphEncoder:
         self.data = data
         self.threshold = max_edge_distance
         self.coordinates = ['Longtitude', 'Lattitude']
+        self.position = ['Suburb']
     
     
     def transform(self) -> torch.Tensor:
-        edges = []
-        positions = self.data[self.coordinates].to_numpy()
+        edges = [[], []]
+        # positions = self.data[self.coordinates].to_numpy()
+        locations = self.data[self.position].to_numpy()
         
-        for i in range(positions.shape[0] - 1):
-            for j in range(i + 1, positions.shape[0] - 1):
-                dist = self._distance(positions[i, :], positions[j, :])
-                if dist <= self.threshold:
-                    edges.append((i, j))
+        # for i in range(positions.shape[0] - 1):
+        #     for j in range(i + 1, positions.shape[0] - 1):
+        #         dist = self._distance(positions[i, :], positions[j, :])
+        #         if dist <= self.threshold:
+        #             edges[0].append(i)
+        #             edges[1].append(j)
+        
+        for i in range(locations.shape[0] - 1):
+            for j in range(i, locations.shape[0] - 1):
+                if locations[i] == locations[j]:
+                    edges[0].append(i)
+                    edges[1].append(j)
                     
         # COO format
-        return torch.tensor([[e[0] for e in edges], [e[1] for e in edges]])
+        return torch.tensor(edges)
                 
     
     # Haversine formula
