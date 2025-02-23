@@ -1,24 +1,21 @@
-import os 
+import os
 from pathlib import Path
 from abc import ABC, abstractmethod
 
 import torch
+from torch import Tensor
 import numpy as np
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 class EdgeCreator(ABC):
-    cache_dir: Path = Path(os.getenv("CACHE_DIR") or "./cache")
-
-    def __init__(self):
-        os.makedirs(self.cache_dir, exist_ok=True)
+    def __init__(self, cache_path: Path):
+        os.makedirs(cache_path, exist_ok=True)
+        self.cache_dir = cache_path
 
 
     def serialize(self, data: torch.Tensor, f_name: str | None = None) -> torch.Tensor:
         cache_path = (
-            self.cache_dir / 
+            self.cache_dir /
             (f_name if f_name else f"{type(self).__name__}.edges.pt")
         )
 
@@ -28,10 +25,10 @@ class EdgeCreator(ABC):
         return data
 
 
-    def unpack(self) -> torch.Tensor:
-        return torch.load(self.cache_path, weights_only=True)
+    def get_cached(self) -> Tensor:
+        return torch.load(self.cache_dir, weights_only=True)
 
 
     @abstractmethod
-    def encode(self, data: np.ndarray) -> torch.Tensor:
+    def encode(self, data: np.ndarray, *, cache: bool) -> torch.Tensor:
         ...

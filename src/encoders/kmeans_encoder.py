@@ -2,7 +2,8 @@
 This file contains implementation of Representative Encoding - edge creation mechanism, based on
 spatial clusters representatives.
 """
-from typing import Callable
+
+from pathlib import Path
 
 import torch
 import numpy as np
@@ -10,12 +11,16 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator,TransformerMixin
 
-from src.encoders.common import EdgeCreator
+from src.schema.spatial import DistMetric
+from ._base import EdgeCreator
+from .metrics import euclid_dist
 
 
+# TODO: styling
+# TODO: docstring
 class ReprEncoder(EdgeCreator):
-    scaler: TransformerMixin = StandardScaler()
-    kmeans: BaseEstimator = KMeans(
+    _scaler: TransformerMixin = StandardScaler()
+    _kmeans: BaseEstimator = KMeans(
         max_iter=100_000,
         init="k-means++",
         random_state=13,
@@ -24,28 +29,28 @@ class ReprEncoder(EdgeCreator):
 
     def __init__(
         self,
-        n_repr: int,
-        dist_metric: Callable[[np.ndarray, np.ndarray], np.ndarray],
-        cluster_threshold: float,
-        *,
+        n_repr: int = 100,
+        dist_metric: DistMetric = euclid_dist,
         neigh_rate: float = 1,
+        *,
+        cache_dir: Path
     ):
-        super().__init__()
-        self.kmeans.set_params(n_clusters=n_repr)
+        super().__init__(cache_dir)
 
+        self._kmeans.set_params(n_clusters=n_repr)
         self.n_repr = n_repr
         self.dist_metric = dist_metric
-        self.threshold = cluster_threshold
         self.neigh_rate = neigh_rate
 
 
     # NOTE: data matrix contains "target values" as the LAST COLUMN
-    def encode(self, data: np.ndarray, scale: bool = False) -> torch.Tensor:
+    # TODO: decompose?
+    def encode(self, data: np.ndarray, scale: bool = False, *, cache: bool = False) -> torch.Tensor:
         if scale:
-            data = self.scaler.fit_transform(data)
+            data = self._scaler.fit_transform(data)
 
-        self.kmeans.fit(data)
-        repr = self.kmeans.cluster_centers_
+        self._kmeans.fit(data)
+        repr = self._kmeans.cluster_centers_
 
         print(f"Inter-group variance of target after KMeans: {repr[:, -1].var()}")
         repr = repr[:, :-1]
@@ -63,6 +68,11 @@ class ReprEncoder(EdgeCreator):
             ],
             dtype=torch.long
         ).T
-        self.serialize(edge_index)
+        if cache:
+            self.serialize(edge_index)
 
-        return edge_index, winners
+        return edge_index
+
+
+if __name__ == "__main__":
+    pass
