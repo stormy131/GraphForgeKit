@@ -45,7 +45,7 @@ class ReprEncoder(EdgeCreator):
 
     # NOTE: data matrix contains "target values" as the LAST COLUMN
     # TODO: decompose?
-    def encode(self, data: np.ndarray, scale: bool = False, *, cache: bool = False) -> torch.Tensor:
+    def __call__(self, data: np.ndarray, scale: bool = False, *, cache: bool = False) -> torch.Tensor:
         if scale:
             data = self._scaler.fit_transform(data)
 

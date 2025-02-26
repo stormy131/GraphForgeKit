@@ -36,7 +36,7 @@ class DistEncoder(EdgeCreator):
         self._density_cutoff = density
 
 
-    def encode(self, data: np.ndarray, *, cache: bool = False) -> Tensor:
+    def __call__(self, data: np.ndarray, *, cache: bool = False) -> Tensor:
         edges: list[list[int]] = []
         for i in range(data.shape[0] - 1):
             for j in range(i + 1, data.shape[0] - 1):

@@ -1,0 +1,2 @@
+class RunReport:
+    pass

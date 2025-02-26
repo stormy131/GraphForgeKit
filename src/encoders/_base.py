@@ -30,5 +30,5 @@ class EdgeCreator(ABC):
 
 
     @abstractmethod
-    def encode(self, data: np.ndarray, *, cache: bool) -> torch.Tensor:
+    def __call__(self, data: np.ndarray, *, cache: bool) -> torch.Tensor:
         ...
