@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator,TransformerMixin
 
-from src.schema.spatial import DistMetric
+from schema.spatial import DistMetric
 from ._base import EdgeCreator
 from .metrics import euclid_dist
 

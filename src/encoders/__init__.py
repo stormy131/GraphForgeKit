@@ -9,5 +9,4 @@ def get_default_encoders(cache_dir: Path) -> list[EdgeCreator]:
     return [
         DistEncoder(),
         ReprEncoder(),
-        
     ]

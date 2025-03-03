@@ -6,7 +6,7 @@ from torch_geometric.data import Data
 from torch_geometric.loader import NodeLoader
 from sklearn.metrics import r2_score
 
-from src.schema.gnn_build import GNNConfig
+from schema.gnn_build import GNNConfig
 from ._train_config import (
     N_EPOCHS, LEARN_RATE, LOSS, N_BATCH,
     NODE_VICINITY,
@@ -31,7 +31,8 @@ class GNN:
     def _build_net(self):
         layers = []
 
-        conv_scheme = [self._config.input_size] + self._config.encoder_scheme
+        # conv_scheme = [self._config.input_size] + self._config.encoder_scheme
+        conv_scheme = self._config.encoder_scheme
         for input_dim, output_dim in zip(conv_scheme, conv_scheme[1:]):
             layers.append(
                 self._config.conv_operator(

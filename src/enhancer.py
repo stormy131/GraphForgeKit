@@ -32,18 +32,25 @@ class Enhancer:
         self._node_splitter = RandomNodeSplit(num_val=NUM_VAL, num_test=NUM_TEST)
         self._encoder_options = [
             target_encoding,
-            *get_default_encoders(cache_dir),
+            # *get_default_encoders(cache_dir),
         ]
 
 
     # TODO: reg & class separation
-    def run_compare(self, data: np.ndarray, target: np.ndarray) -> RunReport:
+    def run_compare(self, data: np.ndarray, target: np.ndarray, spatial: np.ndarray) -> RunReport:
         runs = []
 
         for encoder in self._encoder_options:
-            model_data = self._setup_data(data, target, encoder)
-            self._gnn.train(model_data)
-            runs.append( self._gnn.inference(model_data) )
+            edges = encoder(spatial, cache=True)
+            graph_data = Data(
+                make_tensor(data, dtype=torch.float32),
+                edge_index=edges,
+                y=make_tensor(target, dtype=torch.float32),
+            )
+
+            graph_data = self._node_splitter(graph_data)
+            self._gnn.train(graph_data)
+            runs.append( self._gnn.inference(graph_data) )
 
         return runs
 

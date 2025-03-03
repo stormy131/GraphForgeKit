@@ -10,7 +10,7 @@ import torch
 from torch import Tensor
 import numpy as np
 
-from src.schema.spatial import DistMetric
+from schema.spatial import DistMetric
 from ._base import EdgeCreator
 from .metrics import euclid_dist
 
