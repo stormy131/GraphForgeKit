@@ -32,7 +32,7 @@ class Enhancer:
         self._node_splitter = RandomNodeSplit(num_val=NUM_VAL, num_test=NUM_TEST)
         self._encoder_options = [
             target_encoding,
-            # *get_default_encoders(cache_dir),
+            *get_default_encoders(cache_dir),
         ]
 
 
