@@ -5,7 +5,7 @@ from torch.nn import ReLU
 from torch_geometric.nn import SAGEConv
 
 from enhancer import Enhancer
-from encoders.kmeans_encoder import ReprEncoder
+from encoders import DistEncoder
 from schema.gnn_build import GNNConfig
 
 
@@ -15,9 +15,6 @@ def main():
         data = np.load(f)
 
         config = GNNConfig(
-            # input_size=...,
-            # output_size=...,
-            
             activation=ReLU,
             activation_args={},
 
@@ -30,13 +27,16 @@ def main():
 
         test = Enhancer(
             config,
-            ReprEncoder( cache_dir=Path("./enhancer_cache") ),
+            DistEncoder( cache_dir=Path("./enhancer_cache") ),
             Path("./enhancer_cache")
         )
-        test.run_compare(
-            data["data"],
-            data["target"],
-            data["spatial"],
+
+        print(
+            test.run_compare(
+                data["data"],
+                data["target"],
+                data["spatial"],
+            )
         )
 
 

@@ -15,9 +15,6 @@ class GNNConfig:
     asd
     """
 
-    # input_size: int
-    # output_size: int
-
     activation: Type[TActivation]
     conv_operator: Type[TConvolution]
 

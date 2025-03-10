@@ -12,7 +12,6 @@ from encoders import get_default_encoders
 from encoders._base import EdgeCreator
 from schema import GNNConfig, RunReport
 
-
 # TODO: docstring
 class Enhancer:
     """
@@ -41,28 +40,31 @@ class Enhancer:
         runs = []
 
         for encoder in self._encoder_options:
-            edges = encoder(spatial, cache=True)
+            # TODO: ReprEncoder requires target concatenation
+            edges = encoder.get_cached()
             graph_data = Data(
                 make_tensor(data, dtype=torch.float32),
                 edge_index=edges,
                 y=make_tensor(target, dtype=torch.float32),
             )
 
+            assert graph_data.validate(raise_on_error=False), "Constructed invalid graph"
             graph_data = self._node_splitter(graph_data)
-            self._gnn.train(graph_data)
-            runs.append( self._gnn.inference(graph_data) )
+            self._gnn.train(graph_data, graph_data.subgraph(graph_data.val_mask))
+
+            runs.append( self._gnn.test(graph_data.subgraph(graph_data.test_mask)) )
 
         return runs
 
 
     def get_grpahs(self) -> Tensor:
         edge_idx = [
-            encoder.unpack()
+            encoder.get_cached()
             for encoder in self._encoder_options
         ]
 
-        # TODO: networkx instance?
-    
+        # TODO: return networkx instance?
+
 
     def _setup_data(self, data: np.ndarray, target: np.ndarray, encoder: EdgeCreator) -> Data:
         edges = encoder(data, cache=True)
@@ -73,3 +75,7 @@ class Enhancer:
         )
 
         return self._node_splitter(graph_data)
+
+
+if __name__ == "__main__":
+    pass
