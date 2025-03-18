@@ -88,7 +88,6 @@ class GNN:
     # TODO: Metric list processing
     def test(self, test_data: Data, *, prefix: str = "") -> tuple[float, float]:
         self._gnn.eval()
-
         with torch.no_grad():
             predicts = self._gnn(test_data.x, test_data.edge_index)
             mse = LOSS(predicts, test_data.y)

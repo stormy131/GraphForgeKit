@@ -4,18 +4,36 @@ spatial distance (Haversine distance).
 """
 
 from pathlib import Path
-from random import random
 
 import torch
 import numpy as np
+from numba import njit, prange
 
 from schema.spatial import DistMetric
 from ._base import EdgeCreator
 from .metrics import euclid_dist
 
 
+@njit(parallel=True)
+def _helper(
+    data: np.ndarray,
+    dist_metric,
+    dist_threshold: float,
+    density_cutoff: float
+) -> np.ndarray:
+    n = data.shape[0]
+    adj = np.zeros((n, n), dtype=np.int32)
+    
+    for i in prange(n - 1):
+        for j in range(i + 1, n):
+            pair_dist = dist_metric(data[i], data[j])
+            if np.random.random() <= density_cutoff and pair_dist <= dist_threshold:
+                adj[i, j] = adj[j, i] = 1
+
+    return adj
+
+
 # TODO: docstring
-# TODO: numba optimization
 class DistEncoder(EdgeCreator):
     _dist_threshold: float      = None
     _density_cutoff: float      = None
@@ -28,8 +46,9 @@ class DistEncoder(EdgeCreator):
         density: float = 1,
         *,
         cache_dir: Path,
+        note: str,
     ):
-        super().__init__(cache_dir)
+        super().__init__(cache_dir, note)
 
         self._dist_metric = dist_metric
         self._dist_threshold = max_dist
@@ -37,14 +56,8 @@ class DistEncoder(EdgeCreator):
     
 
     def __call__(self, data: np.ndarray) -> torch.Tensor:
-        # edges: list[list[int]] = []
-        adj = torch.zeros( (data.shape[0], data.shape[0]) )
-
-        for i in range(data.shape[0] - 1):
-            for j in range(i + 1, data.shape[0] - 1):
-                pair_dist = self._dist_metric(data[i], data[j])
-                if random() <= self._density_cutoff and pair_dist <= self._dist_threshold:
-                    adj[i, j] = adj[j, i] = 1
+        adj = _helper(data, self._dist_metric, self._dist_threshold, self._density_cutoff)
+        adj = torch.tensor(adj, dtype=torch.int32)
 
         # https://discuss.pytorch.org/t/how-to-convert-adjacency-matrix-to-edge-index-format/145239/2
         edge_index = adj.nonzero().T.contiguous()

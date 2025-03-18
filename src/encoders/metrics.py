@@ -1,9 +1,11 @@
 from math import radians, cos, sin, asin, sqrt
 
 import numpy as np
+from numba import njit
 
 
 _R = 6371
+@njit
 def geo_dist(loc_a: np.ndarray, loc_b: np.ndarray) -> float:
     lon_1, lat_1 = radians(loc_a[0]), radians(loc_a[1])
     lon_2, lat_2 = radians(loc_b[0]), radians(loc_b[1])
@@ -16,5 +18,6 @@ def geo_dist(loc_a: np.ndarray, loc_b: np.ndarray) -> float:
     return c * _R
 
 
+@njit
 def euclid_dist(loc_a: np.ndarray, loc_b: np.ndarray) -> float:
     return np.sum((loc_a - loc_b) ** 2)

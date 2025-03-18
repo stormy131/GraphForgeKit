@@ -8,11 +8,11 @@ import numpy as np
 
 
 class EdgeCreator(ABC):
-    def __init__(self, cache_path: Path):
+    def __init__(self, cache_path: Path, note: str):
         os.makedirs(cache_path, exist_ok=True)
-        self.cache_path = (
-            cache_path / f"{type(self).__name__}.edges.pt"
-        )
+
+        cache_slug = note if note else type(self).__name__
+        self.cache_path = cache_path / f"{cache_slug}.edges.pt"
 
 
     def serialize(self, data: torch.Tensor) -> torch.Tensor:

@@ -15,41 +15,26 @@ from schema import GNNConfig, RunReport
 # TODO: docstring
 class Enhancer:
     """
-    TODO: Run comparer with different encoders
     TODO: Generate Report
-
-    TODO: run passed GNN on different datasets
-    TODO: (for different encoders)
     """
 
     _gnn: GNN                           = None
     _node_splitter: BaseTransform       = None
     _encoder_options: list[EdgeCreator] = None
 
-    def __init__(self, net_config: GNNConfig, target_encoding: EdgeCreator, cache_dir: Path):
+    def __init__(self, net_config: GNNConfig, encoder_options: list[EdgeCreator]):
         self._gnn = GNN(net_config)
         self._node_splitter = RandomNodeSplit(num_val=NUM_VAL, num_test=NUM_TEST)
-        self._encoder_options = [
-            target_encoding,
-            # *get_default_encoders(cache_dir),
-        ]
+        self._encoders = encoder_options
 
 
     # TODO: reg & class separation
     def run_compare(self, data: np.ndarray, target: np.ndarray, spatial: np.ndarray) -> RunReport:
         runs = []
 
-        for encoder in self._encoder_options:
+        for encoder in self._encoders:
             # TODO: ReprEncoder requires target concatenation
-            edges = encoder.get_cached()
-            graph_data = Data(
-                make_tensor(data, dtype=torch.float32),
-                edge_index=edges,
-                y=make_tensor(target, dtype=torch.float32),
-            )
-
-            assert graph_data.validate(raise_on_error=False), "Constructed invalid graph"
-            graph_data = self._node_splitter(graph_data)
+            graph_data = self._setup_data(data, target, encoder)
             self._gnn.train(graph_data, graph_data.subgraph(graph_data.val_mask))
 
             runs.append( self._gnn.test(graph_data.subgraph(graph_data.test_mask)) )
@@ -60,20 +45,23 @@ class Enhancer:
     def get_grpahs(self) -> Tensor:
         edge_idx = [
             encoder.get_cached()
-            for encoder in self._encoder_options
+            for encoder in self._encoders
         ]
 
         # TODO: return networkx instance?
 
 
     def _setup_data(self, data: np.ndarray, target: np.ndarray, encoder: EdgeCreator) -> Data:
-        edges = encoder(data, cache=True)
+        # TODO: unified EdgeCreator method for edge cretion. [CACHE | COMPUTE]
+        # edges = encoder.get_cached()
+        edges = encoder(data)
         graph_data = Data(
             make_tensor(data, dtype=torch.float32),
-            edge_index=edges,
+            edge_index=edges[:, :100_000],
             y=make_tensor(target, dtype=torch.float32),
         )
 
+        assert graph_data.validate(raise_on_error=False), "Constructed invalid graph"
         return self._node_splitter(graph_data)
 
 

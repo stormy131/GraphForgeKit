@@ -33,9 +33,10 @@ class ReprEncoder(EdgeCreator):
         dist_metric: DistMetric = euclid_dist,
         neigh_rate: float = 1,
         *,
-        cache_dir: Path
+        cache_dir: Path,
+        note: str,
     ):
-        super().__init__(cache_dir)
+        super().__init__(cache_dir, note)
 
         self._kmeans.set_params(n_clusters=n_repr)
         self.n_repr = n_repr
