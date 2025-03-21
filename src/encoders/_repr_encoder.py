@@ -10,14 +10,13 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator,TransformerMixin
+from scipy.spatial.distance import cdist
 
-from schema.spatial import DistMetric
 from ._base import EdgeCreator
 from .metrics import euclid_dist
+from schema.spatial import DistMetric
 
 
-# TODO: styling
-# TODO: docstring
 class ReprEncoder(EdgeCreator):
     _scaler: TransformerMixin = StandardScaler()
     _kmeans: BaseEstimator = KMeans(
@@ -31,7 +30,7 @@ class ReprEncoder(EdgeCreator):
         self,
         n_repr: int = 100,
         dist_metric: DistMetric = euclid_dist,
-        neigh_rate: float = 1,
+        neighbor_rate: float = 1,
         *,
         cache_dir: Path,
         note: str,
@@ -41,26 +40,28 @@ class ReprEncoder(EdgeCreator):
         self._kmeans.set_params(n_clusters=n_repr)
         self.n_repr = n_repr
         self.dist_metric = dist_metric
-        self.neigh_rate = neigh_rate
+        self.density_cutoff = neighbor_rate
 
 
-    # NOTE: data matrix contains "target values" as the LAST COLUMN
-    # TODO: decompose?
-    def _call__(self, data: np.ndarray, scale: bool = False) -> torch.Tensor:
+    def _populate_edges(self, node_repr: np.ndarray) -> np.ndarray:
+        sorted_idx = np.argsort(node_repr)
+        sorted_repr = node_repr[sorted_idx]
+
+        cluster_boundaries = (np.diff(sorted_repr) != 0).nonzero()[0]
+        # TODO: Last chat
+
+
+    def __call__(self, data: np.ndarray, scale: bool = False) -> torch.Tensor:
         if scale:
             data = self._scaler.fit_transform(data)
 
         self._kmeans.fit(data)
         repr = self._kmeans.cluster_centers_
+        dists = cdist(data, repr, metric=self.dist_metric)
+        assignment = np.argmin(dists, axis=1)
 
-        print(f"Inter-group variance of target after KMeans: {repr[:, -1].var()}")
-        repr = repr[:, :-1]
-        winners = np.asarray([
-            np.argmin( [self.dist_metric(r, x) for r in repr] )
-            for x in data[:, :-1]
-        ])
-
-        # TODO: Separate data by winner and report intra-group variance
+        # Populate edges with defined density
+        self._populate_edges(assignment)
         edge_index = torch.tensor(
             [
                 [ cluster_repr, self.n_repr + entry_idx ]

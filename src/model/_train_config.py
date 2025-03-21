@@ -1,9 +1,9 @@
 # TODO: docstring
-
 from typing import TypeAlias
 
 from torch.nn import MSELoss
 from torch_geometric.loader import NeighborLoader
+
 
 # Training config
 N_EPOCHS = 200

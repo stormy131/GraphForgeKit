@@ -7,7 +7,7 @@ from torch_geometric.nn import Sequential
 from torch_geometric.loader import NodeLoader
 from sklearn.metrics import r2_score
 
-from schema.gnn_build import GNNConfig
+from schema.config import GNNConfig
 from ._train_config import (
     N_EPOCHS, LEARN_RATE, LOSS, N_BATCH,
     NODE_VICINITY,

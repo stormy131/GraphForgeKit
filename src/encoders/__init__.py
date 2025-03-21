@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ._base import EdgeCreator
-from ._kmeans_encoder import ReprEncoder
+from ._repr_encoder import ReprEncoder
 from ._dist_encoder import DistEncoder
 
 

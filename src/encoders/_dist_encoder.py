@@ -1,5 +1,5 @@
 """
-This file containsimp;lementation of Distance Encoder - edge creation mechansim, based on
+This file contains imlementation of Distance Encoder - edge creation mechansim, based on
 spatial distance (Haversine distance).
 """
 
@@ -33,7 +33,6 @@ def _helper(
     return adj
 
 
-# TODO: docstring
 class DistEncoder(EdgeCreator):
     _dist_threshold: float      = None
     _density_cutoff: float      = None

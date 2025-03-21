@@ -10,7 +10,9 @@ from model.gnn import GNN
 from model._train_config import NUM_VAL, NUM_TEST
 from encoders import get_default_encoders
 from encoders._base import EdgeCreator
-from schema import GNNConfig, RunReport
+from schema.config import GNNConfig
+from schema.run_report import RunReport
+
 
 # TODO: docstring
 class Enhancer:
@@ -55,9 +57,10 @@ class Enhancer:
         # TODO: unified EdgeCreator method for edge cretion. [CACHE | COMPUTE]
         # edges = encoder.get_cached()
         edges = encoder(data)
+        breakpoint()
         graph_data = Data(
             make_tensor(data, dtype=torch.float32),
-            edge_index=edges[:, :100_000],
+            edge_index=edges,
             y=make_tensor(target, dtype=torch.float32),
         )
 
