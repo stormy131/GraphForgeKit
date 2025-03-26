@@ -1,11 +1,11 @@
 import torch
-from torch.nn import Module
+from torch.nn import Module, Dropout
 from torch.optim import Adam
 from torch_geometric import nn
 from torch_geometric.data import Data
 from torch_geometric.nn import Sequential
 from torch_geometric.loader import NodeLoader
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, accuracy_score
 
 from schema.config import GNNConfig
 from ._train_config import (
@@ -31,8 +31,9 @@ class GNN:
 
     def _build_net(self) -> Sequential:
         layers = []
-
         conv_scheme = self._config.encoder_scheme
+        mlp_scheme = [ self._config.encoder_scheme[-1] ] + self._config.predictor_scheme
+
         for input_dim, output_dim in zip(conv_scheme, conv_scheme[1:]):
             layers.append((
                self._config.conv_operator(
@@ -43,7 +44,6 @@ class GNN:
                "x, edge_index -> x"
             ))
 
-        mlp_scheme = [ self._config.encoder_scheme[-1] ] + self._config.predictor_scheme
         for input_dim, output_dim in zip(mlp_scheme, mlp_scheme[1:]):
             layers.append( nn.Linear(input_dim, output_dim) )
             layers.append( self._config.activation(**self._config.activation_args) )
@@ -91,11 +91,12 @@ class GNN:
         with torch.no_grad():
             predicts = self._gnn(test_data.x, test_data.edge_index)
             mse = LOSS(predicts, test_data.y)
-            r2 = r2_score( test_data.y.detach(), predicts.detach() )
+            accuracy = accuracy_score(test_data.y.detach(), predicts.argmax(axis=1).detach())
+            # r2 = r2_score( test_data.y.detach(), predicts.detach() )
 
-            print(prefix + f"Loss = {mse:.4e} | R^2 = {r2}")
+            print(prefix + f"Loss = {mse:.4e} | Accuracy = {accuracy}")
 
-        return (mse, r2)
+        return (mse, accuracy)
 
 
 if __name__ == "__main__":

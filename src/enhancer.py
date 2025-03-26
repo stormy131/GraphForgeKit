@@ -33,13 +33,19 @@ class Enhancer:
     # TODO: reg & class separation
     def run_compare(self, data: np.ndarray, target: np.ndarray, spatial: np.ndarray) -> RunReport:
         runs = []
-
         for encoder in self._encoders:
-            # TODO: ReprEncoder requires target concatenation
-            graph_data = self._setup_data(data, target, encoder)
-            self._gnn.train(graph_data, graph_data.subgraph(graph_data.val_mask))
+            # TODO: unified EdgeCreator method for edge cretion. [CACHE | COMPUTE]
+            # edges = encoder.get_cached()
+            edges = encoder(spatial)
 
-            runs.append( self._gnn.test(graph_data.subgraph(graph_data.test_mask)) )
+            graph_data = self._setup_data(data, target, edges)
+            val_data, test_data = (
+                graph_data.subgraph(graph_data.val_mask),
+                graph_data.subgraph(graph_data.test_mask),
+            )
+
+            self._gnn.train(graph_data, val_data)
+            runs.append(self._gn.test(test_data))
 
         return runs
 
@@ -53,15 +59,12 @@ class Enhancer:
         # TODO: return networkx instance?
 
 
-    def _setup_data(self, data: np.ndarray, target: np.ndarray, encoder: EdgeCreator) -> Data:
-        # TODO: unified EdgeCreator method for edge cretion. [CACHE | COMPUTE]
-        # edges = encoder.get_cached()
-        edges = encoder(data)
-        breakpoint()
+    def _setup_data(self, data: np.ndarray, target: np.ndarray, edges: Tensor) -> Data:
         graph_data = Data(
             make_tensor(data, dtype=torch.float32),
             edge_index=edges,
-            y=make_tensor(target, dtype=torch.float32),
+            # y=make_tensor(target, dtype=torch.float32),
+            y=make_tensor(target, dtype=torch.long),
         )
 
         assert graph_data.validate(raise_on_error=False), "Constructed invalid graph"

@@ -60,8 +60,8 @@ class DistEncoder(EdgeCreator):
 
         # https://discuss.pytorch.org/t/how-to-convert-adjacency-matrix-to-edge-index-format/145239/2
         edge_index = adj.nonzero().T.contiguous()
+        
         self.serialize(edge_index)
-
         return edge_index
 
 
