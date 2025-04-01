@@ -3,7 +3,7 @@ This file contains implementation of Representative Encoding - edge creation mec
 spatial clusters representatives.
 """
 
-from pathlib import Path
+from typing import Any
 
 import torch
 import numpy as np
@@ -12,9 +12,8 @@ from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator,TransformerMixin
 from scipy.spatial.distance import cdist
 
-from ._base import EdgeCreator
+from ._base import EdgeCreator, DistMetric
 from .metrics import euclid_dist
-from schema.spatial import DistMetric
 
 
 class ReprEncoder(EdgeCreator):
@@ -31,11 +30,9 @@ class ReprEncoder(EdgeCreator):
         n_repr: int = 100,
         dist_metric: DistMetric = euclid_dist,
         neighbor_rate: float = 1,
-        *,
-        cache_dir: Path,
-        note: str,
+        **kwargs: dict[str, Any],
     ):
-        super().__init__(cache_dir, note)
+        super().__init__(**kwargs)
 
         self._kmeans.set_params(n_clusters=n_repr)
         self.n_repr = n_repr
@@ -71,6 +68,7 @@ class ReprEncoder(EdgeCreator):
 
         self._kmeans.fit(data)
         repr = self._kmeans.cluster_centers_
+
         dists = cdist(data, repr, metric=self.dist_metric)
         assignment = np.argmin(dists, axis=1)
 

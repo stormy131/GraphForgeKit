@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Module, Dropout
+from torch.nn import Dropout
 from torch.optim import Adam
 from torch_geometric import nn
 from torch_geometric.data import Data
@@ -17,13 +17,6 @@ from ._train_config import (
 
 # TODO: docstring
 class GNN:
-    """
-    asd
-    """
-
-    _gnn: Module        = None
-    _config: GNNConfig  = None
-
     def __init__(self, config: GNNConfig):
         self._config = config
         self._gnn = self._build_net()
@@ -51,6 +44,7 @@ class GNN:
         return Sequential( "x, edge_index", layers )
 
 
+    # TODO: ?
     def _make_loader(self, data: Data) -> NodeLoader:
         return GraphLoader(
             data=data,
@@ -62,12 +56,13 @@ class GNN:
 
 
     # TODO: alive-progess visuals
-    def train(self, train_data: Data, val_data: Data):
+    def train(self, train_data: Data, val_data: Data, *, verbose: bool=False):
         optim = Adam(self._gnn.parameters(), LEARN_RATE)
         train_loader = self._make_loader(train_data)
 
         for epoch in range(N_EPOCHS):
             self._gnn.train()
+
             for batch in train_loader:
                 optim.zero_grad()
                 out = self._gnn(batch.x, batch.edge_index)
@@ -78,25 +73,26 @@ class GNN:
 
                 loss.backward()
                 optim.step()
-            
-            # TODO: Tune validation step for different tasks
-            self.test(val_data, prefix=f"Epoch = {epoch} | ")
+
+            # TODO: Tune validation step for diferent tasks
+            if verbose:
+                self.test(val_data, prefix=f"Epoch = {epoch} | ")
 
         return self
 
 
     # TODO: Metric list processing
-    def test(self, test_data: Data, *, prefix: str = "") -> tuple[float, float]:
+    def test(self, test_data: Data, *, prefix: str = "") -> torch.Tensor:
         self._gnn.eval()
         with torch.no_grad():
-            predicts = self._gnn(test_data.x, test_data.edge_index)
+            predicts = self._gnn(test_data.x, test_data.edge_index).detach()
             mse = LOSS(predicts, test_data.y)
-            accuracy = accuracy_score(test_data.y.detach(), predicts.argmax(axis=1).detach())
-            # r2 = r2_score( test_data.y.detach(), predicts.detach() )
 
+            predicts = predicts.argmax(axis=1)
+            accuracy = accuracy_score(test_data.y.detach(), predicts)
             print(prefix + f"Loss = {mse:.4e} | Accuracy = {accuracy}")
 
-        return (mse, accuracy)
+        return predicts
 
 
 if __name__ == "__main__":

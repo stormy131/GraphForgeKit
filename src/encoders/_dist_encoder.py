@@ -3,14 +3,13 @@ This file contains imlementation of Distance Encoder - edge creation mechansim, 
 spatial distance (Haversine distance).
 """
 
-from pathlib import Path
+from typing import Any
 
 import torch
 import numpy as np
 from numba import njit, prange
 
-from schema.spatial import DistMetric
-from ._base import EdgeCreator
+from ._base import EdgeCreator, DistMetric
 from .metrics import euclid_dist
 
 
@@ -43,11 +42,9 @@ class DistEncoder(EdgeCreator):
         dist_metric: DistMetric = euclid_dist,
         max_dist: float = 10,
         density: float = 1,
-        *,
-        cache_dir: Path,
-        note: str,
+        **kwargs: dict[str, Any]
     ):
-        super().__init__(cache_dir, note)
+        super().__init__(**kwargs)
 
         self._dist_metric = dist_metric
         self._dist_threshold = max_dist

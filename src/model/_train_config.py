@@ -3,14 +3,13 @@
 
 from typing import TypeAlias
 
-from torch.nn import MSELoss, CrossEntropyLoss, NLLLoss
+from torch.nn import MSELoss, CrossEntropyLoss
 from torch_geometric.loader import NeighborLoader
 
 
 # Training config
-N_EPOCHS = 200
-LEARN_RATE = 1e-3
-# LOSS = MSELoss()
+N_EPOCHS = 50
+LEARN_RATE = 1e-4
 LOSS = CrossEntropyLoss()
 N_BATCH=128
 
