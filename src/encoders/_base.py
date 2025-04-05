@@ -14,8 +14,8 @@ class EdgeCreator(ABC):
     def __init__(self, cache_dir: Path, note: str | None = None):
         os.makedirs(cache_dir, exist_ok=True)
 
-        cache_slug = note if note else type(self).__name__
-        self.cache_dir = cache_dir / f"{cache_slug}.edges.pt"
+        self.slug = note if note else type(self).__name__
+        self.cache_dir = cache_dir / f"{self.slug}.edges.pt"
 
 
     def serialize(self, data: torch.Tensor) -> torch.Tensor:

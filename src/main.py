@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 from torch.nn import ReLU
-from torch_geometric.nn import SAGEConv, GCNConv
+from torch_geometric.nn import GCNConv
 
 from enhancer import Enhancer
 from encoders import ReprEncoder, DistEncoder
@@ -39,12 +39,12 @@ def main():
     encoders = [
         DistEncoder(
             max_dist=5,
-            cache_dir=Path("./enhancer_cache"),
+            cache_dir=Path("../data/enhancer_cache"),
             note="cora_dist",
         ),
         ReprEncoder(
             neighbor_rate=0.7,
-            cache_dir=Path("./enhancer_cache"),
+            cache_dir=Path("../data/enhancer_cache"),
             note="cora_repr",
         ),
     ]

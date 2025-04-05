@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import Tensor, tensor as make_tensor
 from torch_geometric.data import Data
-from torch_geometric.transforms import RandomNodeSplit, BaseTransform
+from torch_geometric.transforms import RandomNodeSplit
 
 from model.gnn import GNN
 from model._train_config import NUM_VAL, NUM_TEST
@@ -20,9 +20,10 @@ class Enhancer:
         self._gnn = GNN(net_config)
         self._node_splitter = RandomNodeSplit(num_val=NUM_VAL, num_test=NUM_TEST)
         
-        self._encoders = get_default_encoders(cache_dir=Path("./enhancer_cache"))
-        if encoder_options:
-            self._encoders.extend(encoder_options)
+        self._encoders = [
+            *get_default_encoders(cache_dir=Path("./enhancer_cache")),
+            *encoder_options,
+        ]
 
 
     # TODO: reg & class separation
@@ -42,7 +43,7 @@ class Enhancer:
 
             self._gnn.train(graph_data, val_data, verbose=True)
             runs.append((
-                encoder.__class__.__name__,
+                encoder.slug,
                 test_data.y.detach().numpy(),
                 self._gnn.test(test_data).numpy(),
             ))
