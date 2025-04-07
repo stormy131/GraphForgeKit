@@ -1,27 +1,31 @@
-from pathlib import Path
-
 import numpy as np
 import torch
 from torch import Tensor, tensor as make_tensor
 from torch_geometric.data import Data
 from torch_geometric.transforms import RandomNodeSplit
 
-from model.gnn import GNN
-from model._train_config import NUM_VAL, NUM_TEST
+from gnn import GNN
 from encoders import get_default_encoders
 from encoders._base import EdgeCreator
-from schema.config import GNNConfig
+from configs import PathConfig, TrainConfig
+from scheme.network import GNNConfig
 from reporter import RunReporter
+
+
+PATH_CONFIG, TRAIN_CONFIG = PathConfig(), TrainConfig()
 
 
 # TODO: docstring
 class Enhancer:
     def __init__(self, net_config: GNNConfig, encoder_options: list[EdgeCreator] = []):
         self._gnn = GNN(net_config)
-        self._node_splitter = RandomNodeSplit(num_val=NUM_VAL, num_test=NUM_TEST)
+        self._node_splitter = RandomNodeSplit(
+            num_val=TRAIN_CONFIG.val_ratio,
+            num_test=TRAIN_CONFIG.test_ratio
+        )
         
         self._encoders = [
-            *get_default_encoders(cache_dir=Path("./enhancer_cache")),
+            *get_default_encoders(cache_dir=PATH_CONFIG.edge_cache),
             *encoder_options,
         ]
 
@@ -50,6 +54,10 @@ class Enhancer:
 
 
         return RunReporter(runs)
+    
+
+    def tramsform():
+        pass
 
 
     def get_grpahs(self) -> Tensor:
@@ -69,7 +77,7 @@ class Enhancer:
             y=make_tensor(target, dtype=torch.long),
         )
 
-        assert graph_data.validate(raise_on_error=False), "Constructed invalid graph"
+        assert graph_data.validate(raise_on_error=False), "Constructed graph is invalid."
         return self._node_splitter(graph_data)
 
 

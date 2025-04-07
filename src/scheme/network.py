@@ -1,27 +1,17 @@
-from pathlib import Path
 from dataclasses import dataclass
 from typing import Type, TypeVar, Any
 
 from torch.nn import Module
 from torch_geometric.nn.conv import MessagePassing
-from pydantic import Field 
-from pydantic_settings import BaseSettings
-
-
-class PathConfig(BaseSettings):
-    data_root: Path = Field("../data/processed")
-    target: str     = Field("melbourne/Melbourne_housing_FULL.npz")
 
 
 TActivation = TypeVar("TActivation", bound=Module)
 TConvolution = TypeVar("TConvolution", bound=MessagePassing)
 
+# TODO: should be in a form of JSON / dict-based structure
+# [in order to construct convolutions without restrictions]
 @dataclass
 class GNNConfig:
-    """
-    asd
-    """
-
     activation: Type[TActivation]
     conv_operator: Type[TConvolution]
 
@@ -29,4 +19,4 @@ class GNNConfig:
     activation_args: dict[str, Any]
 
     encoder_scheme: list[int]
-    predictor_scheme: list[int]
+    estimator_scheme: list[int]
