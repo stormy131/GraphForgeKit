@@ -29,7 +29,11 @@ class RunReporter:
 
 
     def __repr__(self):
-        return self.measurements
+        # return self.measurements
+        return tabulate(
+            self.measurements,
+            headers=["Option", *[m.__name__ for m in [accuracy_score, f1_score]]],
+        )
 
 
     def __str__(self):

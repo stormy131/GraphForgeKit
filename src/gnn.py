@@ -4,8 +4,8 @@ import torch
 from torch.nn import Dropout, Module
 from torch.nn import Sequential
 from torch.optim import Adam
-from torch_geometric import nn
-from torch_geometric.data import Data
+from torch_geometric import nn as geom_nn
+from torch_geometric.data import Data as GeomData
 from torch_geometric.nn import Sequential as GeomSequential
 from torch_geometric.loader import NeighborLoader, NodeLoader
 from sklearn.metrics import accuracy_score
@@ -42,19 +42,15 @@ class GNN:
 
         scheme = [ config.encoder_scheme[-1] ] + config.estimator_scheme
         for input_dim, output_dim in zip(scheme, scheme[1:]):
-            layers.append( nn.Linear(input_dim, output_dim) )
+            layers.append( geom_nn.Linear(input_dim, output_dim) )
             layers.append( config.activation(**config.activation_args) )
 
         # NOTE: redundant output activation
         return layers[:-1]
-        # return (
-        #     GeomSequential( "x, edge_index", encoder_layers ),
-        #     GeomSequential( "x, edge_index", estimator_layers ),
-        # )
 
 
     # TODO: ?
-    def _make_loader(self, data: Data) -> NodeLoader:
+    def _make_loader(self, data: GeomData) -> NodeLoader:
         return NeighborLoader(
             data=data,
             input_nodes=data.train_mask,
@@ -62,10 +58,10 @@ class GNN:
             num_neighbors=TRAIN_CONFIG.node_vicinity,
             shuffle=True,
         )
-    
+
 
     # TODO: not sure if Linear should be used to reconstruct
-    def _save_current_weights(self):
+    def _save_weights(self):
         n_conv = len(self._c.encoder_scheme) - 1
         encoder_layers = [x.lin for x in islice(self._gnn.children(), n_conv)]
 
@@ -75,12 +71,13 @@ class GNN:
             torch.save(encoder.state_dict(), f)
 
 
-    def _make_encoder(self):
+    @property
+    def encoder_layers(self) -> torch.Tensor:
         pass
 
 
     # TODO: alive-progess visuals
-    def train(self, train_data: Data, val_data: Data, *, verbose: bool=False):
+    def train(self, train_data: GeomData, val_data: GeomData, *, verbose: bool=False):
         self._gnn = GeomSequential("x, edge_index", self._layers)
         optim = Adam(self._gnn.parameters(), TRAIN_CONFIG.learn_rate)
         train_loader = self._make_loader(train_data)
@@ -103,13 +100,12 @@ class GNN:
             if verbose:
                 self.test(val_data, prefix=f"Epoch = {epoch} | ")
 
-        self._save_current_weights()
-        breakpoint()
+        self._save_weights()
         return self
 
 
     # TODO: Metric list processing
-    def test(self, test_data: Data, *, prefix: str = "") -> torch.Tensor:
+    def test(self, test_data: GeomData, *, prefix: str = "") -> torch.Tensor:
         assert self._gnn, "GNN was not trained yet."
 
         self._gnn.eval()

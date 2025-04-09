@@ -6,15 +6,18 @@ from enhancer import Enhancer
 from encoders import ReprEncoder, DistEncoder
 from configs import PathConfig
 from scheme.network import GNNConfig
+from scheme.data import EnhancerData
 
 
 def main():
     path_config = PathConfig()
     with open(path_config.target_data, "rb") as f:
         unpacked = np.load(f)
-        data, target, spatial = (
+
+        # NOTE: Target dimensions
+        data = EnhancerData(
             unpacked["data"],
-            unpacked["target"],
+            unpacked["target"].reshape(-1),
             unpacked["spatial"],
         )
 
@@ -26,8 +29,8 @@ def main():
         conv_operator=GCNConv,
         conv_args={ },
 
-        encoder_scheme=[data.shape[1], 256, 256],
-        estimator_scheme=[128, 128, np.unique(target).shape[0]],
+        encoder_scheme=[data.features.shape[1], 256, 256],
+        estimator_scheme=[128, 128, np.unique(data.target).shape[0]],
     )
 
     encoders = [
@@ -43,9 +46,7 @@ def main():
         ),
     ]
 
-    test = Enhancer(gnn_setup, encoders)
-    # TODO: target shape!
-    result = test.run_compare(data, target.reshape(-1), spatial)
+    result = Enhancer.compare_builders(data, gnn_setup, encoders)
     print(result)
 
 
