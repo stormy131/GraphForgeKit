@@ -71,7 +71,6 @@ class Enhancer:
     
 
     def fit(self, data: EnhancerData, *, verbose: bool = False) -> GNN:
-    # def fit(self, data: EnhancerData) -> "Enhancer":
         gnn = GNN(self._gnn_config)
         edges = self._edge_builder(data.spatial)
         graph_data = self._setup_data(data.features, data.target, edges)
@@ -79,7 +78,7 @@ class Enhancer:
 
         self._encoder = (gnn
             .train(graph_data, val_data, verbose=verbose)
-            .encoder_layers
+            .encoder
         )
 
         return gnn
@@ -88,8 +87,9 @@ class Enhancer:
     def transform(self, data: EnhancerData) -> np.ndarray:
         assert self._encoder, "GNN was not fit to the data yet."
         edge_index = self._edge_builder(data.spatial)
+        graph_data = self._setup_data(data.features, data.target, edge_index)
 
-        return self._encoder(data.features, edge_index)
+        return self._encoder(graph_data.x, graph_data.edge_index)
 
 
     def get_grpahs(self):

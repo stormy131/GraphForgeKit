@@ -60,20 +60,18 @@ class GNN:
         )
 
 
-    # TODO: not sure if Linear should be used to reconstruct
-    def _save_weights(self):
-        n_conv = len(self._c.encoder_scheme) - 1
-        encoder_layers = [x.lin for x in islice(self._gnn.children(), n_conv)]
-
-        encoder = Sequential(*encoder_layers)
-        assert self._gnn[0].lin.weight.data_ptr() == encoder[0].weight.data_ptr()
-        with open(PATH_CONFIG.weights_cache / "test.pt", "wb") as f:
-            torch.save(encoder.state_dict(), f)
-
-
+    # TODO: optional caching
     @property
-    def encoder_layers(self) -> torch.Tensor:
-        pass
+    def encoder(self) -> Module:
+        n_conv = len(self._c.encoder_scheme) - 1
+        encoder_layers = [
+            (x, "x, edge_index -> x")
+            for x in islice(self._gnn.children(), n_conv)
+        ]
+        encoder = GeomSequential("x, edge_index", encoder_layers)
+
+        assert self._gnn[0].lin.weight.data_ptr() == encoder[0].lin.weight.data_ptr()
+        return encoder
 
 
     # TODO: alive-progess visuals
@@ -100,7 +98,7 @@ class GNN:
             if verbose:
                 self.test(val_data, prefix=f"Epoch = {epoch} | ")
 
-        self._save_weights()
+        # self._save_weights()
         return self
 
 
