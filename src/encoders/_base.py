@@ -10,6 +10,7 @@ from torch import Tensor
 
 DistMetric: TypeAlias = Callable[[np.ndarray, np.ndarray], float]
 
+# TODO: refactor os package usage to natuve PathLib
 class EdgeCreator(ABC):
     def __init__(self, cache_dir: Path, note: str | None = None):
         os.makedirs(cache_dir, exist_ok=True)

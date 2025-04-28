@@ -11,7 +11,7 @@ from gnn import GNN
 from encoders import get_default_encoders
 from encoders._base import EdgeCreator
 from configs import PathConfig, TrainConfig
-from scheme.network import GNNConfig
+from scheme.network import NetworkConfig
 from scheme.data import EnhancerData
 from reporter import RunReporter
 
@@ -23,9 +23,8 @@ PATH_CONFIG, TRAIN_CONFIG = PathConfig(), TrainConfig()
 class Enhancer:
     _encoder: torch.nn.Module = None
 
-    def __init__(self, net_config: GNNConfig, edge_builder: EdgeCreator):
+    def __init__(self, net_config: NetworkConfig, edge_builder: EdgeCreator):
         self._edge_builder = edge_builder
-        # self._model = GNN(net_config)
         self._gnn_config = net_config
         self._node_splitter = RandomNodeSplit(
             num_val=TRAIN_CONFIG.val_ratio,
@@ -34,12 +33,11 @@ class Enhancer:
 
 
     # TODO: reg & class separation
-    # TODO: unified data object
     @classmethod
     def compare_builders(
         cls,
         data: EnhancerData,
-        gnn_config: GNNConfig,
+        gnn_config: NetworkConfig,
         builders: list[EdgeCreator],
     ) -> RunReporter:
         runs: list[np.ndarray] = []

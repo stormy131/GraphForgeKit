@@ -1,17 +1,15 @@
-from itertools import islice
+from itertools import chain, islice
 
 import torch
-from torch.nn import Dropout, Module
-from torch.nn import Sequential
+from torch.nn import Module
 from torch.optim import Adam
-from torch_geometric import nn as geom_nn
 from torch_geometric.data import Data as GeomData
 from torch_geometric.nn import Sequential as GeomSequential
 from torch_geometric.loader import NeighborLoader, NodeLoader
 from sklearn.metrics import accuracy_score
 
 from configs import PathConfig, TrainConfig
-from scheme.network import GNNConfig
+from scheme.network import NetworkConfig
 
 
 PATH_CONFIG, TRAIN_CONFIG = PathConfig(), TrainConfig()
@@ -20,33 +18,16 @@ PATH_CONFIG, TRAIN_CONFIG = PathConfig(), TrainConfig()
 # TODO: review class API
 # TODO: docstring
 class GNN:
-    _c: GNNConfig           = None
+    _c: NetworkConfig       = None
     _gnn: Module            = None
     _layers: list[Module]   = []
 
-    def __init__(self, config: GNNConfig):
-        # self._gnn = self._build_net()
+    def __init__(self, config: NetworkConfig):
         self._c = config
-        self._layers = self._make_layers(config)
-
-
-    def _make_layers(self, config: GNNConfig) -> list[Module]:
-        layers = []
-
-        scheme = config.encoder_scheme
-        for input_dim, output_dim in zip(scheme, scheme[1:]):
-            layers.append((
-                config.conv_operator(input_dim, output_dim, **config.conv_args),
-                "x, edge_index -> x"
-            ))
-
-        scheme = [ config.encoder_scheme[-1] ] + config.estimator_scheme
-        for input_dim, output_dim in zip(scheme, scheme[1:]):
-            layers.append( geom_nn.Linear(input_dim, output_dim) )
-            layers.append( config.activation(**config.activation_args) )
-
-        # NOTE: redundant output activation
-        return layers[:-1]
+        self._layers = list(chain(
+            [(l, "x, edge_index -> x") for l in config.encoder],
+            config.estimator
+        ))
 
 
     # TODO: ?
@@ -63,14 +44,16 @@ class GNN:
     # TODO: optional caching
     @property
     def encoder(self) -> Module:
-        n_conv = len(self._c.encoder_scheme) - 1
+        assert self._gnn, "GNN was not trained yet."
+        n_conv = len(self._c.encoder)
         encoder_layers = [
             (x, "x, edge_index -> x")
             for x in islice(self._gnn.children(), n_conv)
         ]
-        encoder = GeomSequential("x, edge_index", encoder_layers)
 
+        encoder = GeomSequential("x, edge_index", encoder_layers)
         assert self._gnn[0].lin.weight.data_ptr() == encoder[0].lin.weight.data_ptr()
+
         return encoder
 
 
@@ -98,7 +81,6 @@ class GNN:
             if verbose:
                 self.test(val_data, prefix=f"Epoch = {epoch} | ")
 
-        # self._save_weights()
         return self
 
 
