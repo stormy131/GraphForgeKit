@@ -3,7 +3,6 @@ from pathlib import Path
 from argparse import ArgumentParser, Namespace
 
 import numpy as np
-import torch
 from torch.nn import ReLU, Linear
 from torch_geometric.nn import GCNConv
 
@@ -12,7 +11,8 @@ from encoders import ReprEncoder, DistEncoder
 from configs import PathConfig
 from scheme.network import NetworkConfig
 from scheme.data import EnhancerData
-from utils.parsing import parse_config
+from utils.parsing import build_layers
+from resources import BUILDERS
 
 
 def test():
@@ -61,24 +61,59 @@ def test():
 parser = ArgumentParser(prog="Ehancer")
 parser.add_argument("-m", "--mode", default="compare", choices=["transform", "compare"],
                     help="determines Enhancer inference mode")
-parser.add_argument("-o", "--output", default="../data/outputs",
+parser.add_argument("-i", "--input-path", default="./config.json",
+                    help="path to the system's inference configuration")
+parser.add_argument("-o", "--output-path", default="../data/outputs",
                     help="output directory for the enhanced data")
 
 # - builder comparison
 # - use the provided builder to transfom data. Return transformed data + edge index / networkx isntance?
+# TODO: check on output parent existance
 def main(args: Namespace):
-    path_config = PathConfig(config_file=Path("./example_config.json"))
-    assert path_config.file_config_path.exists(), (
+    config_path = Path(args.input_path)
+    assert config_path.exists(), (
         "Configuration file at project's root is required"
     )
 
-    with open(path_config.file_config_path, "rb") as f:
+    with open(config_path, "rb") as f:
         config = json.load(f)
 
-    breakpoint()
-    layers = parse_config(config)
-    data = ...
-        
+    if len(config["edges"]) < 1:
+        raise ValueError("Empty builders list. At least one option is required.")
+
+    layers = build_layers(config)
+    # TODO: check for existance in the default list
+    builder_options = [
+        BUILDERS[setup["type"]](**setup["kwargs"])
+        for setup in config["edges"]
+    ]
+
+    with open(config["data"], "rb") as f:
+        unpacked = np.load(f)
+
+        # NOTE: Target dimensions
+        data = EnhancerData(
+            unpacked["data"],
+            unpacked["target"].reshape(-1),
+            unpacked["spatial"],
+        )
+
+    if args.mode == "transform":
+        transformed = []
+        enhancers = [
+            Enhancer(net_config=layers, edge_builder=eb)
+            for eb in builder_options
+        ]
+
+        for e in enhancers:
+            e.fit(data)
+            transformed.append( e.transform(data) )
+
+        np.savez(args.output_path, *transformed)
+    else:
+        print(
+            Enhancer.compare_builders(data, layers, builder_options)
+        )
 
 
 if __name__ == "__main__":

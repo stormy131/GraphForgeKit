@@ -2,6 +2,6 @@ from encoders import ReprEncoder, DistEncoder
 
 
 BUILDERS = {
-    "Represents":   ReprEncoder,
+    "ClustRepr":    ReprEncoder,
     "Distance":     DistEncoder,
 }

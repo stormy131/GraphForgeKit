@@ -1,11 +1,22 @@
-[
-    {
-        "structure": {
-            "encoder": [1433, 256, 256],
-            "estimator": [128, 128, 7]
+{
+    "data": "./data/processed/cora.npz",
+    "encoder": [1433, 256, 256],
+    "estimator": [128, 128, 7],
+    "convolution": "GCN",
+    "edges": [
+        {
+            "type": "Distance",
+            "kwargs": {
+                "max_dist": 5,
+                "note": "cora_dist"
+            }
         },
-        "convolution": "default_convolution",
-        "edges": "default_edge_builder",
-        "data": "./data/processed/cora.npz"
-    }
-]
+        {
+            "type": "ClustRepr",
+            "kwargs": {
+                "neighbor_rate": 0.7,
+                "note": "cora_repr"
+            }
+        }
+    ]
+}

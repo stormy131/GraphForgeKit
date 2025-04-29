@@ -12,7 +12,12 @@ DistMetric: TypeAlias = Callable[[np.ndarray, np.ndarray], float]
 
 # TODO: refactor os package usage to natuve PathLib
 class EdgeCreator(ABC):
-    def __init__(self, cache_dir: Path, note: str | None = None):
+    def __init__(
+        self,
+        cache_dir: Path = Path("./cache"),
+        note: str | None = None,
+    ):
+        cache_dir = Path(cache_dir)
         os.makedirs(cache_dir, exist_ok=True)
 
         self.slug = note if note else type(self).__name__
