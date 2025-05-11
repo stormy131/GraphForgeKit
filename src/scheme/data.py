@@ -36,7 +36,7 @@ CONFIG_FILE_SCHEMA = {
 }
 
 EnhancerData = NamedTuple("EnhancerData", [
-    ("features", np.ndarray),
-    ("target", np.ndarray),
-    ("spatial", np.ndarray),
+    ("features",    np.ndarray),
+    ("target",      np.ndarray),
+    ("spatial",     np.ndarray),
 ])

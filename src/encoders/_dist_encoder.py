@@ -18,7 +18,7 @@ def _helper(
     data: np.ndarray,
     dist_metric,
     dist_threshold: float,
-    density_cutoff: float
+    density_cutoff: float,
 ) -> np.ndarray:
     n = data.shape[0]
     adj = np.zeros((n, n), dtype=np.int32)
@@ -52,10 +52,15 @@ class DistEncoder(EdgeCreator):
     
 
     def __call__(self, data: np.ndarray) -> torch.Tensor:
-        adj = _helper(data, self._dist_metric, self._dist_threshold, self._density_cutoff)
+        adj = _helper(
+            data,
+            self._dist_metric,
+            self._dist_threshold,
+            self._density_cutoff,
+        )
         adj = torch.tensor(adj, dtype=torch.int32)
 
-        # https://discuss.pytorch.org/t/how-to-convert-adjacency-matrix-to-edge-index-format/145239/2
+        # NOTE: https://discuss.pytorch.org/t/how-to-convert-adjacency-matrix-to-edge-index-format/145239/2
         edge_index = adj.nonzero().T.contiguous()
         
         self.serialize(edge_index)

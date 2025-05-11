@@ -13,8 +13,8 @@ class PathConfig():
     edge_cache      : Path
 
 
-    def __init__(self, data_dir: str = "./data"):
-        self.data_root = Path(data_dir)
+    def __init__(self, data_root: str = "./data"):
+        self.data_root = Path(data_root)
 
         self.output_root = self.data_root / "outputs"
         self.cache_data = self.data_root / "cache"

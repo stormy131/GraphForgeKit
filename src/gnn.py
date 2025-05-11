@@ -84,6 +84,7 @@ class GNN:
         return self
 
 
+    # TODO: fix multiple responsibility [LOGGING / PREDICTING]
     # TODO: Metric list processing
     def test(self, test_data: GeomData, *, prefix: str = "") -> torch.Tensor:
         assert self._gnn, "GNN was not trained yet."

@@ -1,3 +1,4 @@
+from typing import Iterable
 from itertools import chain
 
 import torch
@@ -13,7 +14,8 @@ from encoders._base import EdgeCreator
 from configs import PathConfig, TrainConfig
 from scheme.network import NetworkConfig
 from scheme.data import EnhancerData
-from reporter import RunReporter
+from scheme.edges import EdgeStrategy
+from utils.reporter import RunReporter
 
 
 PATH_CONFIG, TRAIN_CONFIG = PathConfig(), TrainConfig()
@@ -36,34 +38,28 @@ class Enhancer:
     @classmethod
     def compare_builders(
         cls,
-        data: EnhancerData,
         gnn_config: NetworkConfig,
-        builders: list[EdgeCreator],
+        strategies: Iterable[EdgeStrategy]
     ) -> RunReporter:
         runs: list[np.ndarray] = []
-        options_iter = chain(
-            builders,
-            get_default_encoders(PATH_CONFIG.cache_data),
-        )
+        for builder, data in strategies:
+            f_train, f_test, t_train, t_test, s_train, s_test = train_test_split(
+                data.features,
+                data.target,
+                data.spatial,
+                test_size=TRAIN_CONFIG.test_ratio,
+            )
 
-        f_train, f_test, t_train, t_test, s_train, s_test = train_test_split(
-            data.features,
-            data.target,
-            data.spatial,
-            test_size=TRAIN_CONFIG.test_ratio,
-        )
-
-        for edge_builder in options_iter:
-            self = cls(gnn_config, edge_builder)
+            self = cls(gnn_config, builder)
             gnn = self.fit(EnhancerData(f_train, t_train, s_train), verbose=False)
 
             # TODO: unified EdgeCreator method for edge cretion. [CACHE | COMPUTE]
             # edges = encoder.get_cached()
-            edges = edge_builder(s_test)
+            edges = builder(s_test)
 
             test_graph = self._setup_data(f_test, t_test, edges)
-            output = gnn.test(test_graph, prefix=f"{edge_builder.slug} test: ").numpy()
-            runs.append( (edge_builder.slug, t_test, output) )
+            output = gnn.test(test_graph, prefix=f"{builder.slug} test: ").numpy()
+            runs.append( (builder.slug, t_test, output) )
 
         return RunReporter(runs)
     
@@ -87,7 +83,8 @@ class Enhancer:
         edge_index = self._edge_builder(data.spatial)
         graph_data = self._setup_data(data.features, data.target, edge_index)
 
-        return self._encoder(graph_data.x, graph_data.edge_index)
+        transformed = self._encoder(graph_data.x, graph_data.edge_index)
+        return transformed.detach().numpy()
 
 
     def get_grpahs(self):

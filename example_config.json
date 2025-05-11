@@ -1,22 +1,43 @@
 {
-    "data": "./data/processed/cora.npz",
-    "encoder": [1433, 256, 256],
-    "estimator": [128, 128, 7],
-    "convolution": "GCN",
+    "task": {
+        "type": "regression",
+        "target_idx": 0
+    },
+
+    "gnn_config": {
+        "encoder_schema":   [256, 256],
+        "estimator_schema": [128, 128, 7],
+        "convolution":      "GCN"
+    },
+
     "edges": [
         {
             "type": "Distance",
+            "spatial": {
+                "idx": null,
+                "exclude": false
+            },
+
             "kwargs": {
-                "max_dist": 5,
-                "note": "cora_dist"
+                "max_dist": 1,
+                "note": "cora_dist",
+                "cache_dir": "./data/cache/edges"
             }
         },
+
         {
             "type": "ClustRepr",
+            "spatial": {
+                "idx": null,
+                "exclude": false
+            },
+
             "kwargs": {
                 "neighbor_rate": 0.7,
-                "note": "cora_repr"
+                "note": "cora_repr",
+                "cache_dir": "./data/cache/edges"
             }
         }
+
     ]
 }
