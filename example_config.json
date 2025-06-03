@@ -20,7 +20,7 @@
 
             "kwargs": {
                 "max_dist": 1,
-                "note": "cora_dist",
+                "cache_id": "cora_dist",
                 "cache_dir": "./data/cache/edges"
             }
         },
@@ -34,7 +34,7 @@
 
             "kwargs": {
                 "neighbor_rate": 0.7,
-                "note": "cora_repr",
+                "cache_id": "cora_repr",
                 "cache_dir": "./data/cache/edges"
             }
         }

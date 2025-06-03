@@ -1,13 +1,15 @@
 from typing import Iterable
 from pathlib import Path
 
-from ._base import EdgeCreator
-from ._repr_encoder import ReprEncoder
-from ._dist_encoder import DistEncoder
+from encoders._base import EdgeCreator
+from encoders._anchor import AnchorStrategy
+from encoders._threshold import ThresholdStrategy
+from encoders._knn import KNNStrategy
+from encoders._grid import GridStrategy
 
 
 def get_default_encoders(cache_dir: Path) -> Iterable[EdgeCreator]:
     return [
-        DistEncoder( cache_dir=cache_dir ),
-        ReprEncoder( cache_dir=cache_dir ),
+        ThresholdStrategy( cache_dir=cache_dir ),
+        AnchorStrategy( cache_dir=cache_dir ),
     ]

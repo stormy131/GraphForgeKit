@@ -8,10 +8,10 @@ from torch.nn import ReLU, Linear
 from torch_geometric.nn import GCNConv
 
 from enhancer import Enhancer
-from encoders import ReprEncoder, DistEncoder
+from encoders import AnchorStrategy, ThresholdStrategy
 from configs import PathConfig
-from scheme.network import NetworkConfig
-from scheme.data import EnhancerData
+from schema.network import NetworkConfig
+from schema.data import EnhancerData
 from utils.parsing import parse_layers, parse_edge_strategies
 
 
@@ -42,19 +42,19 @@ def test():
     )
 
     encoders = [
-        DistEncoder(
+        ThresholdStrategy(
             max_dist=5,
             cache_dir=path_config.edge_cache,
-            note="cora_dist",
+            cache_id="cora_dist",
         ),
-        ReprEncoder(
+        AnchorStrategy(
             neighbor_rate=0.7,
             cache_dir=path_config.edge_cache,
-            note="cora_repr",
+            cache_id="cora_repr",
         ),
     ]
 
-    result = Enhancer.compare_builders(data, gnn_setup, encoders)
+    result = Enhancer.compare_strategies(data, gnn_setup, encoders)
     print(result)
 
 
@@ -104,7 +104,7 @@ def main(args: Namespace):
         # TODO: npz??
         np.savez(output_path / "output.npz", *transformed)
     else:
-        print(Enhancer.compare_builders(layers, strategies_iter))
+        print(Enhancer.compare_strategies(layers, strategies_iter))
 
 
 if __name__ == "__main__":

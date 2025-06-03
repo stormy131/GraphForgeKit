@@ -1,7 +1,7 @@
-from encoders import ReprEncoder, DistEncoder
+from encoders import AnchorStrategy, ThresholdStrategy
 
 
 BUILDERS = {
-    "ClustRepr":    ReprEncoder,
-    "Distance":     DistEncoder,
+    "ClustRepr":    AnchorStrategy,
+    "Distance":     ThresholdStrategy,
 }

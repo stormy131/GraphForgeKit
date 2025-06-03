@@ -1,5 +1,4 @@
 from typing import Iterable
-from itertools import chain
 
 import torch
 import numpy as np
@@ -7,14 +6,14 @@ from sklearn.model_selection import train_test_split
 from torch import Tensor, tensor as make_tensor
 from torch_geometric.data import Data
 from torch_geometric.transforms import RandomNodeSplit
-
+    
 from gnn import GNN
 from encoders import get_default_encoders
 from encoders._base import EdgeCreator
 from configs import PathConfig, TrainConfig
-from scheme.network import NetworkConfig
-from scheme.data import EnhancerData
-from scheme.edges import EdgeStrategy
+from schema.network import NetworkConfig
+from schema.data import EnhancerData
+from schema.edges import EdgeStrategy
 from utils.reporter import RunReporter
 
 
@@ -36,7 +35,7 @@ class Enhancer:
 
     # TODO: reg & class separation
     @classmethod
-    def compare_builders(
+    def compare_strategies(
         cls,
         gnn_config: NetworkConfig,
         strategies: Iterable[EdgeStrategy]
@@ -51,20 +50,17 @@ class Enhancer:
             )
 
             self = cls(gnn_config, builder)
-            gnn = self.fit(EnhancerData(f_train, t_train, s_train), verbose=False)
-
-            # TODO: unified EdgeCreator method for edge cretion. [CACHE | COMPUTE]
-            # edges = encoder.get_cached()
+            gnn, train_edges = self.fit(EnhancerData(f_train, t_train, s_train), verbose=False)
             edges = builder(s_test)
 
             test_graph = self._setup_data(f_test, t_test, edges)
             output = gnn.test(test_graph, prefix=f"{builder.slug} test: ").numpy()
-            runs.append( (builder.slug, t_test, output) )
+            runs.append( (builder.slug, t_test, output, train_edges) )
 
         return RunReporter(runs)
     
 
-    def fit(self, data: EnhancerData, *, verbose: bool = False) -> GNN:
+    def fit(self, data: EnhancerData, *, verbose: bool = False) -> tuple[GNN, np.ndarray]:
         gnn = GNN(self._gnn_config)
         edges = self._edge_builder(data.spatial)
         graph_data = self._setup_data(data.features, data.target, edges)
@@ -75,7 +71,7 @@ class Enhancer:
             .encoder
         )
 
-        return gnn
+        return gnn, graph_data.edge_index.numpy()
 
 
     def transform(self, data: EnhancerData) -> np.ndarray:
@@ -85,15 +81,6 @@ class Enhancer:
 
         transformed = self._encoder(graph_data.x, graph_data.edge_index)
         return transformed.detach().numpy()
-
-
-    def get_grpahs(self):
-        edge_idx = [
-            encoder.get_cached()
-            for encoder in self._encoders
-        ]
-
-        # TODO: return networkx instance?
 
 
     def _setup_data(self, data: np.ndarray, target: np.ndarray, edges: Tensor) -> Data:

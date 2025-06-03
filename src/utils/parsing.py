@@ -5,9 +5,9 @@ import pandas as pd
 from torch_geometric.nn import Linear
 
 from resources import CONVOLUTIONS, BUILDERS
-from scheme.network import NetworkConfig
-from scheme.data import EnhancerData
-from scheme.edges import EdgeStrategy
+from schema.network import NetworkConfig
+from schema.data import EnhancerData
+from schema.edges import EdgeStrategy
 
 
 # TODO: add validation on JSON field types

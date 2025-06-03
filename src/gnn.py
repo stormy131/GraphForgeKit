@@ -9,7 +9,7 @@ from torch_geometric.loader import NeighborLoader, NodeLoader
 from sklearn.metrics import accuracy_score
 
 from configs import PathConfig, TrainConfig
-from scheme.network import NetworkConfig
+from schema.network import NetworkConfig
 
 
 PATH_CONFIG, TRAIN_CONFIG = PathConfig(), TrainConfig()
