@@ -8,7 +8,7 @@ from torch import Tensor
 
 
 # TODO: refactor os package usage to natuve PathLib
-class EdgeCreator(ABC):
+class BaseStrategy(ABC):
     def __init__(
         self,
         cache_dir: str | Path,
@@ -16,32 +16,19 @@ class EdgeCreator(ABC):
         cache_id: str | None = None,
     ):
         cache_dir = Path(cache_dir)
-        cache_dir.mkdir(exist_ok=True)
+        cache_dir.mkdir(exist_ok=True, parents=True)
 
         self._density_cut = density_bound
         self.slug = cache_id if cache_id else type(self).__name__
-        self.cache_path = cache_dir / f"{self.slug}.edges.pt"
+        self.cache_path = cache_dir / f"{self.slug}.graph.pt"
 
-
-    def serialize(self, data: torch.Tensor) -> torch.Tensor:
-        with open(self.cache_path, mode="wb") as cache_file:
-            torch.save(data, cache_file)
-
-        return data
-
-
-    def get_cached(self) -> Tensor:
-        return torch.load(self.cache_path, weights_only=True)
-
-
-    def cut_density(self, edge_idx: np.ndarray, N: int) -> np.ndarray:
-        # NOTE: edge index format is [N_edges, 2]
+    
+    def subsample(self, edge_idx: np.ndarray, ratio: float = 1) -> np.ndarray:
         M = edge_idx.shape[0]
-        M_max = N * (N - 1) // 2
-        M_target = int(self._density_cutoff * M_max)
+        M_sample = int(M * ratio)
+        sampled_idx = np.random.choice(M, size=M_sample, replace=False)
 
-        sampled_idx = np.random.choice(M, M_target, replace=False)
-        return edge_idx[sampled_idx] if M > M_target else edge_idx
+        return edge_idx[sampled_idx]
 
 
     @abstractmethod

@@ -2,18 +2,17 @@ from typing import Iterable
 
 import torch
 import numpy as np
-from sklearn.model_selection import train_test_split
 from torch import Tensor, tensor as make_tensor
 from torch_geometric.data import Data
 from torch_geometric.transforms import RandomNodeSplit
     
 from gnn import GNN
 from encoders import get_default_encoders
-from encoders._base import EdgeCreator
+from encoders._base import BaseStrategy
 from configs import PathConfig, TrainConfig
 from schema.network import NetworkConfig
 from schema.data import EnhancerData
-from schema.edges import EdgeStrategy
+from schema.edges import EdgeBuild
 from utils.reporter import RunReporter
 
 
@@ -24,8 +23,8 @@ PATH_CONFIG, TRAIN_CONFIG = PathConfig(), TrainConfig()
 class Enhancer:
     _encoder: torch.nn.Module = None
 
-    def __init__(self, net_config: NetworkConfig, edge_builder: EdgeCreator):
-        self._edge_builder = edge_builder
+    def __init__(self, net_config: NetworkConfig, strategy: BaseStrategy):
+        self._edge_strategy = strategy
         self._gnn_config = net_config
         self._node_splitter = RandomNodeSplit(
             num_val=TRAIN_CONFIG.val_ratio,
@@ -38,49 +37,61 @@ class Enhancer:
     def compare_strategies(
         cls,
         gnn_config: NetworkConfig,
-        strategies: Iterable[EdgeStrategy]
+        strategies: Iterable[EdgeBuild]
     ) -> RunReporter:
         runs: list[np.ndarray] = []
-        for builder, data in strategies:
-            f_train, f_test, t_train, t_test, s_train, s_test = train_test_split(
-                data.features,
-                data.target,
-                data.spatial,
-                test_size=TRAIN_CONFIG.test_ratio,
-            )
 
-            self = cls(gnn_config, builder)
-            gnn, train_edges = self.fit(EnhancerData(f_train, t_train, s_train), verbose=False)
-            edges = builder(s_test)
+        for strategy, data in strategies:
+            self = cls(gnn_config, strategy)
 
-            test_graph = self._setup_data(f_test, t_test, edges)
-            output = gnn.test(test_graph, prefix=f"{builder.slug} test: ").numpy()
-            runs.append( (builder.slug, t_test, output, train_edges) )
+            ds_graph = self._build_graph(data, strategy)
+            generated_edges = ds_graph.edge_index.numpy()
+            test_graph = ds_graph.subgraph(ds_graph.test_mask)
+
+            gnn = self.fit(data, verbose=False)
+            output = gnn.test(
+                ds_graph.subgraph(ds_graph.test_mask),
+                prefix=f"{strategy.slug} test: ",
+            ).numpy()
+
+            runs.append( (strategy.slug, test_graph.y, output, generated_edges) )
 
         return RunReporter(runs)
-    
 
-    def fit(self, data: EnhancerData, *, verbose: bool = False) -> tuple[GNN, np.ndarray]:
+
+    def fit(self, data: EnhancerData, *, verbose: bool = False) -> GNN:
         gnn = GNN(self._gnn_config)
-        edges = self._edge_builder(data.spatial)
-        graph_data = self._setup_data(data.features, data.target, edges)
-        val_data = graph_data.subgraph(graph_data.val_mask)
+        graph_data = self._build_graph(data, self._edge_strategy)
+
+        train_subgraph = graph_data.subgraph(graph_data.train_mask)
+        val_subgraph = graph_data.subgraph(graph_data.val_mask)
 
         self._encoder = (gnn
-            .train(graph_data, val_data, verbose=verbose)
+            .train(train_subgraph, val_subgraph, verbose=verbose)
             .encoder
         )
 
-        return gnn, graph_data.edge_index.numpy()
+        return gnn
 
 
     def transform(self, data: EnhancerData) -> np.ndarray:
         assert self._encoder, "GNN was not fit to the data yet."
-        edge_index = self._edge_builder(data.spatial)
+        edge_index = self._edge_strategy(data.spatial)
         graph_data = self._setup_data(data.features, data.target, edge_index)
 
         transformed = self._encoder(graph_data.x, graph_data.edge_index)
         return transformed.detach().numpy()
+    
+
+    def _build_graph(self, data: EnhancerData, strategy: BaseStrategy) -> Data:
+        if strategy.cache_path.exists():
+            return torch.load(strategy.cache_path, weights_only=False)
+
+        edges = strategy(data.spatial)
+        ds_graph = self._setup_data(data.features, data.target, edges)
+
+        torch.save(ds_graph, strategy.cache_path)
+        return ds_graph
 
 
     def _setup_data(self, data: np.ndarray, target: np.ndarray, edges: Tensor) -> Data:
@@ -91,7 +102,8 @@ class Enhancer:
             y=make_tensor(target, dtype=torch.long),
         )
 
-        assert graph_data.validate(raise_on_error=False), "Constructed graph is invalid."
+        breakpoint()
+        assert graph_data.validate(raise_on_error=True), "Constructed graph is invalid."
         return self._node_splitter(graph_data)
 
 

@@ -3,11 +3,11 @@ from typing import Callable
 import torch
 import numpy as np
 
-from encoders._base import EdgeCreator
+from encoders._base import BaseStrategy
 from utils.metrics import euclid_dist, DistanceMetric
 
 
-class KNNStrategy(EdgeCreator):
+class KNNStrategy(BaseStrategy):
     def __init__(self, K: int, dis_metric: DistanceMetric = euclid_dist, **kwargs):
         super().__init__(**kwargs)
 
@@ -29,9 +29,8 @@ class KNNStrategy(EdgeCreator):
         )
 
         edge_index = self.cut_density(edge_index, data.shape[0])
-        edge_index = torch.tensor(edge_index.T, dtype=torch.long)#.contiguous()
+        edge_index = torch.tensor(edge_index.T, dtype=torch.long).contiguous()
 
-        self.serialize(edge_index)
         return edge_index
 
 

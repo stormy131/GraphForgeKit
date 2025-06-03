@@ -4,10 +4,10 @@ from pathlib import Path
 import pandas as pd
 from torch_geometric.nn import Linear
 
-from resources import CONVOLUTIONS, BUILDERS
+from resources import CONVOLUTIONS, STRATEGIES
 from schema.network import NetworkConfig
 from schema.data import EnhancerData
-from schema.edges import EdgeStrategy
+from schema.edges import EdgeBuild
 
 
 # TODO: add validation on JSON field types
@@ -39,10 +39,12 @@ def parse_layers(config: dict[str, Any], input_dims: int) -> NetworkConfig:
 
 
 # TODO: check for existance in the default list
-def parse_edge_strategies(raw: pd.DataFrame, config: dict[str, Any]) -> Iterator[EdgeStrategy]:
+def parse_edge_strategies(raw: pd.DataFrame, config: dict[str, Any]) -> Iterator[EdgeBuild]:
     target_idx = config["task"]["target_idx"]
     for strategy in config["edges"]:
-        builder = BUILDERS[strategy["type"]](**strategy["kwargs"])
+        assert strategy["type"] in STRATEGIES, "Specified strategy is not available."
+
+        builder = STRATEGIES[strategy["type"]](**strategy["kwargs"])
         is_excluded = strategy["spatial"]["exclude"]
         spatial_idx = strategy["spatial"]["idx"] or range(1, raw.shape[1])
 
@@ -57,7 +59,7 @@ def parse_edge_strategies(raw: pd.DataFrame, config: dict[str, Any]) -> Iterator
             raw[target_col]
         )
 
-        yield EdgeStrategy(
+        yield EdgeBuild(
             builder=builder,
             spatial=EnhancerData(
                 features=features.to_numpy(),

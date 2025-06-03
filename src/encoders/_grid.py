@@ -4,7 +4,7 @@ from itertools import product
 import torch
 import numpy as np
 
-from encoders._base import EdgeCreator
+from encoders._base import BaseStrategy
 
 
 # Bound extension constant
@@ -13,7 +13,7 @@ EPS = 1e-9
 
 # NOTE: SCALING
 # TODO: Meshgrid + sampling, to external function
-class GridStrategy(EdgeCreator):
+class GridStrategy(BaseStrategy):
     def __init__(
         self,
         intra_edge_ratio    : float,
@@ -27,7 +27,7 @@ class GridStrategy(EdgeCreator):
 
         self._intra = intra_edge_ratio
         self._inter = source_inter_ratio
-        
+        self._inter_k = k_connectivity
         self._dim_bounds = bounds
         self._dim_bin_count = bins
 
@@ -140,9 +140,8 @@ class GridStrategy(EdgeCreator):
 
         intra_edges = self._generate_intra(cell_to_nodes)
         inter_edges = self._generate_inter(cell_to_nodes, n_features)
-        edge_index = torch.concat((intra_edges, inter_edges), dim=0).T
+        edge_index = torch.concat((intra_edges, inter_edges), dim=0).T.contiguous()
 
-        self.serialize(edge_index)
         return edge_index
 
 

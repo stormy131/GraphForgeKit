@@ -77,7 +77,7 @@ def main(args: Namespace):
     input_path  = Path(args.input_path)
     output_path = Path(args.output_path)
 
-    output_path.mkdir(exist_ok=True)
+    output_path.mkdir(exist_ok=True, parents=True)
     assert input_path.exists(), "Specified data file doesn't exist"
     assert config_path.exists(),"Specified configuration file doesn't exist"
 

@@ -7,31 +7,27 @@ from typing import Any
 import torch
 import numpy as np
 
-from encoders._base import EdgeCreator
+from encoders._base import BaseStrategy
 from utils.metrics import euclid_dist, DistanceMetric
 
 
-class ThresholdStrategy(EdgeCreator):
+class ThresholdStrategy(BaseStrategy):
     def __init__(
         self,
         dist_metric: DistanceMetric = euclid_dist,
         max_dist: float = 10,
-        density: float = 1,
+        subsample_rate: float = 1,
         **kwargs: dict[str, Any]
     ):
         super().__init__(**kwargs)
 
         self._dist_metric = dist_metric
         self._dist_threshold = max_dist
-        self._density_cutoff = density
+        self._subsample_rate = subsample_rate
 
 
     def __call__(self, data: np.ndarray) -> torch.Tensor:
         # NOTE: N - number of vertices, M - number of edges
-        if self.cache_path.exists():
-            return self.get_cached()
-
-        N = data.shape[0]
         dists = self._dist_metric(data)
         adj = (dists <= self._dist_threshold).astype(np.int32)
 
@@ -39,13 +35,13 @@ class ThresholdStrategy(EdgeCreator):
         edge_mask = adj[triu_idx] == 1
 
         edge_idx = np.vstack(triu_idx)[:, edge_mask].T
-        edge_idx = self.cut_density(edge_idx, N)
+        edge_idx = self.subsample(edge_idx, self._subsample_rate)
+        breakpoint()
 
         # symmetrical edges
         edge_index = np.concatenate([edge_idx, edge_idx[:, [1, 0]]], axis=0)
-        edge_index = torch.tensor(edge_index.T, dtype=torch.long)
+        edge_index = torch.tensor(edge_index.T, dtype=torch.long).contiguous()
 
-        self.serialize(edge_index)
         return edge_index
 
 

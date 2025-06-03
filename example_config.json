@@ -11,33 +11,35 @@
     },
 
     "edges": [
+        
+
         {
-            "type": "Distance",
+            "type": "Anchor",
             "spatial": {
                 "idx": null,
                 "exclude": false
             },
 
             "kwargs": {
-                "max_dist": 1,
-                "cache_id": "cora_dist",
+                "cluster_sample_rate": 0.7,
+                "cache_id": "cora_repr",
                 "cache_dir": "./data/cache/edges"
             }
         },
 
         {
-            "type": "ClustRepr",
+            "type": "Threshold",
             "spatial": {
                 "idx": null,
                 "exclude": false
             },
 
             "kwargs": {
-                "neighbor_rate": 0.7,
-                "cache_id": "cora_repr",
+                "max_dist": 5,
+                "subsample_rate": 0.5,
+                "cache_id": "cora_dist",
                 "cache_dir": "./data/cache/edges"
             }
         }
-
     ]
 }

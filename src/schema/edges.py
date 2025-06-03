@@ -1,10 +1,10 @@
 from typing import NamedTuple
 
-from encoders import EdgeCreator
+from encoders import BaseStrategy
 from schema.data import EnhancerData
 
 
-EdgeStrategy = NamedTuple("EdgeStrategy", [
-    ("builder", EdgeCreator),
+EdgeBuild = NamedTuple("EdgeBuild", [
+    ("builder", BaseStrategy),
     ("spatial", EnhancerData),
 ])
