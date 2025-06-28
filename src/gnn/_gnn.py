@@ -1,5 +1,3 @@
-from itertools import chain, islice
-
 import torch
 from torch.nn import Module
 from torch.optim import Adam
@@ -10,9 +8,9 @@ from tqdm import tqdm
 
 from configs import TrainConfig
 from schema.network import NetworkConfig
+from gnn._encoder import GraphConvEncoder
 
 
-# TODO: review class API
 # TODO: docstring
 class GNN:
     _gnn: Module                = None
@@ -22,10 +20,12 @@ class GNN:
     def __init__(self, gnn_config: NetworkConfig, train_config: TrainConfig):
         self._gnn_config = gnn_config
         self._train_config = train_config
-        self._layers = list(chain(
-            [(l, "x, edge_index -> x") for l in gnn_config.encoder],
-            gnn_config.estimator
-        ))
+        
+        self._encoder = GraphConvEncoder(gnn_config.encoder)
+        self._gnn = GeomSequential(
+            "x, edge_index",
+            [(self._encoder, "x, edge_index -> x")] + gnn_config.estimator,
+        )
 
     # TODO: ?
     def _make_loader(self, data: GeomData) -> NodeLoader:
@@ -41,19 +41,9 @@ class GNN:
     @property
     def encoder(self) -> Module:
         assert self._gnn, "GNN was not trained yet."
-        n_conv = len(self._gnn_config.encoder)
-        encoder_layers = [
-            (x, "x, edge_index -> x")
-            for x in islice(self._gnn.children(), n_conv)
-        ]
-
-        encoder = GeomSequential("x, edge_index", encoder_layers)
-        assert self._gnn[0].lin.weight.data_ptr() == encoder[0].lin.weight.data_ptr()
-
-        return encoder
+        return self._encoder
 
     def train(self, train_data: GeomData, val_data: GeomData, *, verbose: bool=False):
-        self._gnn = GeomSequential("x, edge_index", self._layers)
         optim = Adam(self._gnn.parameters(), self._train_config.learn_rate)
         train_loader = self._make_loader(train_data)
 
