@@ -1,8 +1,6 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Callable, TypeAlias
 
-import torch
 import numpy as np
 from torch import Tensor
 
@@ -32,5 +30,5 @@ class BaseStrategy(ABC):
 
 
     @abstractmethod
-    def __call__(self, data: np.ndarray) -> torch.Tensor:
+    def __call__(self, data: Tensor) -> Tensor:
         ...

@@ -7,7 +7,7 @@ from torch_geometric.nn import Linear
 from resources import CONVOLUTIONS, STRATEGIES
 from schema.network import NetworkConfig
 from schema.data import EnhancerData
-from schema.edges import EdgeBuild
+from schema.edges import GraphSetup
 
 
 # TODO: add validation on JSON field types
@@ -39,7 +39,7 @@ def parse_layers(config: dict[str, Any], input_dims: int) -> NetworkConfig:
 
 
 # TODO: check for existance in the default list
-def parse_edge_strategies(raw: pd.DataFrame, config: dict[str, Any]) -> Iterator[EdgeBuild]:
+def parse_edge_strategies(raw: pd.DataFrame, config: dict[str, Any]) -> Iterator[GraphSetup]:
     target_idx = config["task"]["target_idx"]
     for strategy in config["edges"]:
         assert strategy["type"] in STRATEGIES, "Specified strategy is not available."
@@ -59,7 +59,7 @@ def parse_edge_strategies(raw: pd.DataFrame, config: dict[str, Any]) -> Iterator
             raw[target_col]
         )
 
-        yield EdgeBuild(
+        yield GraphSetup(
             builder=builder,
             spatial=EnhancerData(
                 features=features.to_numpy(),

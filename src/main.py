@@ -2,60 +2,91 @@ import json
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+from torch import from_numpy
 from torch.nn import ReLU, Linear
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import GCNConv, SAGEConv
+from sklearn.metrics import mean_squared_error
 
 from enhancer import Enhancer
-from encoders import AnchorStrategy, ThresholdStrategy
-from configs import PathConfig
+from strategies import AnchorStrategy, ThresholdStrategy, KNNStrategy, GridStrategy
+from configs import PathConfig, TrainConfig
 from schema.network import NetworkConfig
 from schema.data import EnhancerData
 from utils.parsing import parse_layers, parse_edge_strategies
+from utils.metrics import euclid_dist
 
 
 def test():
     path_config = PathConfig()
+    path_config.target_data = path_config.data_root / "processed/np/Melbourne_housing_FULL.npz"
     with open(path_config.target_data, "rb") as f:
         unpacked = np.load(f)
 
         # NOTE: Target dimensions
         data = EnhancerData(
-            unpacked["data"],
-            unpacked["target"].reshape(-1),
-            unpacked["spatial"],
+            from_numpy(unpacked["data"]     .astype(np.float32)),
+            from_numpy(unpacked["target"]   .astype(np.float32)),
+            from_numpy(unpacked["spatial"]  .astype(np.float32)),
         )
 
+    train_config = TrainConfig(n_epochs=5)
     gnn_setup = NetworkConfig(
         encoder=[
-            GCNConv(data.features.shape[1], 256),
-            GCNConv(256, 256),
+            SAGEConv(data.features.shape[1], 256),
+            SAGEConv(256, 256),
         ],
         estimator=[
             Linear(256, 128),
             ReLU(),
             Linear(128, 128),
             ReLU(),
-            Linear(128, len(np.unique(data.target))),
+            Linear(128, 1),
         ]
     )
 
-    encoders = [
-        ThresholdStrategy(
-            max_dist=5,
-            cache_dir=path_config.edge_cache,
-            cache_id="cora_dist",
-        ),
-        AnchorStrategy(
-            neighbor_rate=0.7,
-            cache_dir=path_config.edge_cache,
-            cache_id="cora_repr",
+    strategies = [
+        # (
+        #     ThresholdStrategy(
+        #         max_dist=5,
+        #         cache_dir=path_config.edge_cache,
+        #         cache_id="cora_dist",
+        #     ),
+        #     data,
+        # ),
+        # (
+        #     AnchorStrategy(
+        #         cluster_sample_rate=0.7,
+        #         cache_dir=path_config.edge_cache,
+        #         cache_id="cora_repr",
+        #     ),
+        #     data,
+        # ),
+        # (
+        #     KNNStrategy(
+        #         K=5,
+        #         dist_metric=euclid_dist,
+        #         cache_dir=path_config.edge_cache,
+        #         cache_id="cora_knn",
+        #     ),
+        #     data,
+        # ),
+        (
+            GridStrategy(
+                intra_edge_ratio=0.01,
+                source_inter_ratio=0.01,
+                k_connectivity=3,
+                bins=4,
+                cache_dir=path_config.edge_cache,
+                cache_id="cora_grid",
+            ),
+            data,
         ),
     ]
 
-    result = Enhancer.compare_strategies(data, gnn_setup, encoders)
-    print(result)
+    result = Enhancer.compare_strategies(gnn_setup, train_config, strategies)
+    print(result.get_comparison([mean_squared_error]))
 
 
 parser = ArgumentParser(prog="Ehancer")
@@ -70,16 +101,15 @@ parser.add_argument("-o", "--output-path", default="../data/outputs",
 
 # - builder comparison
 # - use the provided builder to transfom data. Return transformed data + edge index / networkx isntance?
-# TODO: check on output path parent existance
 # TODO: config file format validation
 def main(args: Namespace):
     config_path = Path(args.config_path)
     input_path  = Path(args.input_path)
     output_path = Path(args.output_path)
 
-    output_path.mkdir(exist_ok=True, parents=True)
+    assert config_path.exists(), "Specified configuration file doesn't exist"
     assert input_path.exists(), "Specified data file doesn't exist"
-    assert config_path.exists(),"Specified configuration file doesn't exist"
+    output_path.mkdir(exist_ok=True, parents=True)
 
     with open(config_path, "rb") as f:
         config = json.load(f)
@@ -90,23 +120,26 @@ def main(args: Namespace):
 
     raw_data = pd.read_csv(input_path)
     input_size = raw_data.shape[1] - 1
-    layers = parse_layers(config["gnn_config"], input_size)
+    train_config = TrainConfig()
 
     # NOTE: NO EAGER!
     strategies_iter = parse_edge_strategies(raw_data, config)
+    layers = parse_layers(config["gnn_config"], input_size)
     if args.mode == "transform":
         transformed = []
         for builder, data in strategies_iter:
-            e = Enhancer(net_config=layers, edge_builder=builder)
+            e = Enhancer(layers, train_config, builder)
             e.fit(data)
             transformed.append( e.transform(data) )
 
-        # TODO: npz??
         np.savez(output_path / "output.npz", *transformed)
     else:
-        print(Enhancer.compare_strategies(layers, strategies_iter))
+        result = Enhancer.compare_strategies(layers, strategies_iter)
+        print(result.get_comparison())
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    main(args)
+    test()
+
+    # args = parser.parse_args()
+    # main(args)

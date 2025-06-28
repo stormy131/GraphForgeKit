@@ -2,9 +2,10 @@ from typing import Any
 from itertools import product
 
 import torch
+from torch_geometric.utils import to_undirected
 import numpy as np
 
-from encoders._base import BaseStrategy
+from strategies._base import BaseStrategy
 
 
 # Bound extension constant
@@ -26,7 +27,7 @@ class GridStrategy(BaseStrategy):
         super().__init__(**kwargs)
 
         self._intra = intra_edge_ratio
-        self._inter = source_inter_ratio
+        self._inter_source = source_inter_ratio
         self._inter_k = k_connectivity
         self._dim_bounds = bounds
         self._dim_bin_count = bins
@@ -88,10 +89,11 @@ class GridStrategy(BaseStrategy):
             if len(nodes_a) == 0:
                 continue
 
-            num_to_sample = max(1, int(len(nodes_a) * self._inter))
+            # Sample origin nodes
+            num_to_sample = max(1, int(len(nodes_a) * self._inter_source))
             sampled_a = np.random.choice(nodes_a, size=num_to_sample, replace=False)
 
-            # Connect each point in A to K random points, in all neighboring cells
+            # Connect each origin point in A to K random points, in all neighboring cells
             for offset in neighbor_offsets:
                 neighbor_cell = tuple(c + dc for c, dc in zip(cell, offset))
                 if neighbor_cell not in cell_to_nodes:
@@ -102,17 +104,19 @@ class GridStrategy(BaseStrategy):
                     continue
 
                 K = min(len(nodes_b), self._inter_k)
-                sampled_b_all = np.random.choice(nodes_b, size=len(sampled_a)*K, replace=False)
+                sampled_b = np.random.choice(nodes_b, size=K, replace=False)
 
-                src = np.repeat(sampled_a, K)
-                edge_pairs = np.stack([src, sampled_b_all], axis=1)
-                edges.append(edge_pairs)
+                src, dst = np.repeat(sampled_a, K), np.tile(sampled_b, sampled_a.shape[0])
+                edge_pairs = np.stack([src, dst], axis=1)
+                edges.extend(edge_pairs)
 
+        breakpoint()
         return torch.tensor(edges, dtype=torch.long)
 
 
     def __call__(self, data: np.ndarray) -> torch.Tensor:
         self._setup(data)
+
         n_features = data.shape[1]
         bin_widths = [
             (high - low) / b 
@@ -130,19 +134,19 @@ class GridStrategy(BaseStrategy):
             cell_idx = ((clipped - low) // bin_width).astype(int)
             cell_indices.append(cell_idx)
 
-        cell_indices = np.stack(cell_indices, axis=1)
-
         # Group points by cell
         cell_to_nodes = {}
+        cell_indices = np.stack(cell_indices, axis=1)
         for idx, cell in enumerate(cell_indices):
             cell_tuple = tuple(cell)
             cell_to_nodes.setdefault(cell_tuple, []).append(idx)
 
         intra_edges = self._generate_intra(cell_to_nodes)
         inter_edges = self._generate_inter(cell_to_nodes, n_features)
-        edge_index = torch.concat((intra_edges, inter_edges), dim=0).T.contiguous()
-
-        return edge_index
+        edges = torch.concat((intra_edges, inter_edges), dim=0)
+        
+        edge_index = torch.tensor(edges.T, dtype=torch.long).contiguous()
+        return to_undirected(edge_index)
 
 
 if __name__ == "__main__":

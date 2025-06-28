@@ -6,8 +6,9 @@ from typing import Any
 
 import torch
 import numpy as np
+from torch_geometric.utils import to_undirected
 
-from encoders._base import BaseStrategy
+from strategies._base import BaseStrategy
 from utils.metrics import euclid_dist, DistanceMetric
 
 
@@ -36,13 +37,9 @@ class ThresholdStrategy(BaseStrategy):
 
         edge_idx = np.vstack(triu_idx)[:, edge_mask].T
         edge_idx = self.subsample(edge_idx, self._subsample_rate)
-        breakpoint()
 
-        # symmetrical edges
-        edge_index = np.concatenate([edge_idx, edge_idx[:, [1, 0]]], axis=0)
         edge_index = torch.tensor(edge_index.T, dtype=torch.long).contiguous()
-
-        return edge_index
+        return to_undirected(edge_index)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-import numpy as np
+from torch import Tensor
 
 
 # TODO: input config validation
@@ -36,7 +36,7 @@ CONFIG_FILE_SCHEMA = {
 }
 
 EnhancerData = NamedTuple("EnhancerData", [
-    ("features",    np.ndarray),
-    ("target",      np.ndarray),
-    ("spatial",     np.ndarray),
+    ("features",    Tensor),
+    ("target",      Tensor),
+    ("spatial",     Tensor),
 ])

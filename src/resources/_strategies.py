@@ -1,4 +1,4 @@
-from encoders import AnchorStrategy, ThresholdStrategy
+from strategies import AnchorStrategy, ThresholdStrategy
 
 
 STRATEGIES = {

@@ -6,6 +6,7 @@ from math import ceil
 from typing import Any
 
 import torch
+from torch_geometric.utils import to_undirected
 import numpy as np
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
@@ -76,11 +77,10 @@ class AnchorStrategy(BaseStrategy):
 
         dists = cdist(data, anchors, metric=_helper)
         assignment = np.argmin(dists, axis=1)
-
         edges = self._make_cluster_edges(assignment)
-        edge_index = torch.tensor(edges.T, dtype=torch.long).contiguous()
 
-        return edge_index
+        edge_index = torch.tensor(edges.T, dtype=torch.long).contiguous()
+        return to_undirected(edge_index)
 
 
 if __name__ == "__main__":
