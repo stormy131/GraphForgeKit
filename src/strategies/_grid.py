@@ -13,7 +13,6 @@ EPS = 1e-9
 
 
 # NOTE: SCALING
-# TODO: Meshgrid + sampling, to external function
 class GridStrategy(BaseStrategy):
     def __init__(
         self,
@@ -110,11 +109,10 @@ class GridStrategy(BaseStrategy):
                 edge_pairs = np.stack([src, dst], axis=1)
                 edges.extend(edge_pairs)
 
-        breakpoint()
-        return torch.tensor(edges, dtype=torch.long)
+        return torch.tensor(np.array(edges), dtype=torch.long)
 
 
-    def __call__(self, data: np.ndarray) -> torch.Tensor:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
         self._setup(data)
 
         n_features = data.shape[1]
@@ -130,22 +128,22 @@ class GridStrategy(BaseStrategy):
             low, high = self._dim_bounds[dim]
             bin_width = bin_widths[dim]
 
-            clipped = np.clip(data[:, dim], low, high)
-            cell_idx = ((clipped - low) // bin_width).astype(int)
+            clipped = torch.clip(data[:, dim], low, high)
+            cell_idx = ((clipped - low) // bin_width).to(dtype=torch.int)
             cell_indices.append(cell_idx)
 
         # Group points by cell
         cell_to_nodes = {}
-        cell_indices = np.stack(cell_indices, axis=1)
+        cell_indices = torch.stack(cell_indices, axis=1)
         for idx, cell in enumerate(cell_indices):
-            cell_tuple = tuple(cell)
+            cell_tuple = tuple(cell.tolist())
             cell_to_nodes.setdefault(cell_tuple, []).append(idx)
 
         intra_edges = self._generate_intra(cell_to_nodes)
         inter_edges = self._generate_inter(cell_to_nodes, n_features)
         edges = torch.concat((intra_edges, inter_edges), dim=0)
         
-        edge_index = torch.tensor(edges.T, dtype=torch.long).contiguous()
+        edge_index = edges.T.to(dtype=torch.long).contiguous()
         return to_undirected(edge_index)
 
 

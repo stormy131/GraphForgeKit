@@ -9,9 +9,9 @@ DistanceMetric: TypeAlias = Callable[[np.ndarray], np.ndarray]
 
 _R = 6371
 @njit(parallel=True)
-def geo_dist(data: np.ndarray) -> np.ndarray:
+def haversine_dist(data: np.ndarray) -> np.ndarray:
     N = data.shape[0]
-    dists = np.zeros((N, N), dtype=np.foat32)
+    dists = np.zeros((N, N), dtype=np.float32)
 
     for i in prange(N):
         for j in range(i + 1, N):
@@ -45,17 +45,30 @@ def cosine_dist(data: np.ndarray) -> np.ndarray:
     dists = np.zeros((N, N), dtype=np.float32)
 
     for i in prange(N):
+        x = data[i]
         for j in range(i + 1, N):
+            y = data[j]
+            
             norm = np.linalg.norm(x) * np.linalg.norm(y)
             dists[i, j] = dists[j, i] = (x @ y) / norm
 
     return dists
 
 
-# TODO
 @njit(parallel=True)
 def mahalanobis_dist(data: np.ndarray) -> np.ndarray:
-    N = data.shape[0]
+    N, _ = data.shape
     dists = np.zeros((N, N), dtype=np.float32)
+
+    cov = np.cov(data, rowvar=False)
+    inv_cov = np.linalg.inv(cov)
+
+    for i in prange(N):
+        for j in range(i + 1, N):
+            diff = data[i] - data[j]
+
+            # sqrt((x - y)^T * S^-1 * (x - y))
+            dist = np.sqrt((diff @ inv_cov) @ diff.T)
+            dists[i, j] = dists[j, i] = dist
 
     return dists

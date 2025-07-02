@@ -55,30 +55,38 @@ class GNN:
                 optim.zero_grad()
                 out = self._gnn(batch.x, batch.edge_index)
 
-                y = batch.y[:batch.batch_size]
+                y = batch.y[:batch.batch_size].squeeze()
                 out = out[:batch.batch_size].squeeze()
                 loss = self._train_config.loss_criteria(out, y)
 
                 loss.backward()
                 optim.step()
 
-            pbar.set_postfix(loss=loss.item())
-            if verbose:
-                self.test(val_data, prefix=f"Epoch = {epoch} | ")
+            val_predicts = self.predict(val_data.x, val_data.edge_index).squeeze()
+            with torch.no_grad():
+                val_loss = self._train_config.loss_criteria(val_predicts, val_data.y.squeeze())
+                pbar.set_postfix(val_loss=val_loss.item())
+            # if verbose:
+            #     self.test(val_data, prefix=f"Epoch = {epoch} | ")
 
         return self
 
-    def test(self, test_data: GeomData, *, prefix: str = "") -> torch.Tensor:
+    def test(self, test_data: GeomData, *, prefix: str = "") -> None:
+        assert self._gnn, "GNN was not trained yet."
+
+        predicts = self.predict(test_data.x, test_data.edge_index)
+        loss = self._train_config.loss_criteria(predicts, test_data.y)
+        print(prefix + f"Loss = {loss:.4e}")
+    
+    def predict(self, data: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         assert self._gnn, "GNN was not trained yet."
 
         self._gnn.eval()
         with torch.no_grad():
-            predicts = self._gnn(test_data.x, test_data.edge_index).detach()
-            loss = self._train_config.loss_criteria(predicts, test_data.y)
-            print(prefix + f"Loss = {loss:.4e}")
+            predicts = self._gnn(data, edge_index).detach()
 
         return predicts
-
+    
 
 if __name__ == "__main__":
     pass

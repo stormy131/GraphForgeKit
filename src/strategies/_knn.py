@@ -14,20 +14,19 @@ class KNNStrategy(BaseStrategy):
         self._dist_metric = dist_metric
 
 
-    def __call__(self, data: np.ndarray) -> np.ndarray:
-        dists = self._dist_metric(data)
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        dists = self._dist_metric(data.numpy())
         sorted_idx = np.argsort(dists, axis=1)
 
         neighbors = sorted_idx[:, 1 : self._K + 1]
-        edge_index = np.concatenate(
+        edges = np.vstack(
             [
-                np.repeat(np.arange(data.shape[0]), self._K)[:, None],
-                neighbors.ravel()[:, None],
+                np.repeat(np.arange(data.shape[0]), self._K),
+                neighbors.flatten(),
             ],
-            axis=1,
         )
 
-        edge_index = torch.tensor(edge_index.T, dtype=torch.long).contiguous()
+        edge_index = torch.tensor(edges, dtype=torch.long).contiguous()
         return to_undirected(edge_index)
 
 

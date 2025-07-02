@@ -8,13 +8,11 @@ from resources import CONVOLUTIONS, STRATEGIES
 from schema.network import NetworkConfig
 from schema.data import EnhancerData
 from schema.edges import GraphSetup
+from schema.configuration import InputConfig, GNNConfig
 
 
-# TODO: add validation on JSON field types
-# TODO: add validation on JSON enum values
 # TODO: add activation injection
-# TODO: check for existance in the default list
-def parse_layers(config: dict[str, Any], input_dims: int) -> NetworkConfig:
+def parse_layers(gnn_config: GNNConfig, input_dims: int) -> NetworkConfig:
     def _helper(layer_cls: Type, scheme: list[int]):
         layers = [
             layer_cls(i_dim, o_dim)
@@ -24,12 +22,12 @@ def parse_layers(config: dict[str, Any], input_dims: int) -> NetworkConfig:
         return layers
 
     encoder_layers = _helper(
-        CONVOLUTIONS[config["convolution"]],
-        [input_dims] + config["encoder_schema"]
+        CONVOLUTIONS[gnn_config.convolution],
+        [input_dims] + gnn_config.encoder_schema
     )
     estimator_layers = _helper(
         Linear,
-        config["encoder_schema"][-1:] + config["estimator_schema"]
+        gnn_config.encoder_schema[-1:] + gnn_config.estimator_schema
     )
 
     return NetworkConfig(
@@ -38,10 +36,9 @@ def parse_layers(config: dict[str, Any], input_dims: int) -> NetworkConfig:
     )
 
 
-# TODO: check for existance in the default list
-def parse_edge_strategies(raw: pd.DataFrame, config: dict[str, Any]) -> Iterator[GraphSetup]:
-    target_idx = config["task"]["target_idx"]
-    for strategy in config["edges"]:
+def parse_edge_strategies(raw: pd.DataFrame, config: InputConfig) -> Iterator[GraphSetup]:
+    target_idx = config.task.target_idx
+    for strategy in config.edges:
         assert strategy["type"] in STRATEGIES, "Specified strategy is not available."
 
         builder = STRATEGIES[strategy["type"]](**strategy["kwargs"])

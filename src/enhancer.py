@@ -46,11 +46,7 @@ class Enhancer:
             test_graph = graph.subgraph(graph.test_mask)
 
             gnn = self.fit(data, verbose=False)
-            output = gnn.test(
-                graph.subgraph(graph.test_mask),
-                prefix=f"{strategy.slug} test: ",
-            ).numpy()
-
+            output = gnn.predict(test_graph.x, test_graph.edge_index).numpy()
             runs.append( (strategy.slug, test_graph.y, output, generated_edges) )
 
         return RunReporter(runs)
@@ -94,7 +90,6 @@ class Enhancer:
             y=target,
         )
 
-        breakpoint()
         assert graph_data.validate(raise_on_error=True), "Constructed graph is invalid."
         return self._node_splitter(graph_data)
 

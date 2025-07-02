@@ -10,13 +10,11 @@ class BaseStrategy(ABC):
     def __init__(
         self,
         cache_dir: str | Path,
-        density_bound: float = 1,
         cache_id: str | None = None,
     ):
         cache_dir = Path(cache_dir)
         cache_dir.mkdir(exist_ok=True, parents=True)
 
-        self._density_cut = density_bound
         self.slug = cache_id if cache_id else type(self).__name__
         self.cache_path = cache_dir / f"{self.slug}.graph.pt"
 

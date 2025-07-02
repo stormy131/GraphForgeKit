@@ -27,18 +27,18 @@ class ThresholdStrategy(BaseStrategy):
         self._subsample_rate = subsample_rate
 
 
-    def __call__(self, data: np.ndarray) -> torch.Tensor:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
         # NOTE: N - number of vertices, M - number of edges
-        dists = self._dist_metric(data)
+        dists = self._dist_metric(data.numpy())
         adj = (dists <= self._dist_threshold).astype(np.int32)
 
         triu_idx = np.triu_indices_from(adj, k=1)
         edge_mask = adj[triu_idx] == 1
 
-        edge_idx = np.vstack(triu_idx)[:, edge_mask].T
-        edge_idx = self.subsample(edge_idx, self._subsample_rate)
+        edges = np.vstack(triu_idx)[:, edge_mask].T
+        edges = self.subsample(edges, self._subsample_rate)
 
-        edge_index = torch.tensor(edge_index.T, dtype=torch.long).contiguous()
+        edge_index = torch.tensor(edges.T, dtype=torch.long).contiguous()
         return to_undirected(edge_index)
 
 

@@ -6,14 +6,15 @@ import numpy as np
 import pandas as pd
 from torch import from_numpy
 from torch.nn import ReLU, Linear
-from torch_geometric.nn import GCNConv, SAGEConv
+from torch_geometric.nn import SAGEConv
 from sklearn.metrics import mean_squared_error
 
 from enhancer import Enhancer
 from strategies import AnchorStrategy, ThresholdStrategy, KNNStrategy, GridStrategy
 from configs import PathConfig, TrainConfig
-from schema.network import NetworkConfig
 from schema.data import EnhancerData
+from schema.network import NetworkConfig
+from schema.configuration import InputConfig
 from utils.parsing import parse_layers, parse_edge_strategies
 from utils.metrics import euclid_dist
 
@@ -99,9 +100,7 @@ parser.add_argument("-i", "--input-path", default="./data/data.csv",
 parser.add_argument("-o", "--output-path", default="../data/outputs",
                     help="output directory for the enhanced data")
 
-# - builder comparison
-# - use the provided builder to transfom data. Return transformed data + edge index / networkx isntance?
-# TODO: config file format validation
+
 def main(args: Namespace):
     config_path = Path(args.config_path)
     input_path  = Path(args.input_path)
@@ -114,9 +113,10 @@ def main(args: Namespace):
     with open(config_path, "rb") as f:
         config = json.load(f)
 
-    assert len(config["edges"]) >= 1, (
-        "Empty builders list. At least one option is required."
-    )
+    try:
+        config = InputConfig(config)
+    except ValueError as e:
+        print("Error validating configuration:", e)
 
     raw_data = pd.read_csv(input_path)
     input_size = raw_data.shape[1] - 1
@@ -124,7 +124,7 @@ def main(args: Namespace):
 
     # NOTE: NO EAGER!
     strategies_iter = parse_edge_strategies(raw_data, config)
-    layers = parse_layers(config["gnn_config"], input_size)
+    layers = parse_layers(config.gnn_config, input_size)
     if args.mode == "transform":
         transformed = []
         for builder, data in strategies_iter:

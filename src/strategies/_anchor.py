@@ -67,13 +67,13 @@ class AnchorStrategy(BaseStrategy):
         return np.stack([source, dest], axis=1)
 
 
-    def __call__(self, data: np.ndarray) -> torch.Tensor:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
         self._kmeans.fit(data)
         anchors = self._kmeans.cluster_centers_
 
         def _helper(x: np.ndarray, y: np.ndarray) -> float:
-            data = np.vstack([x, y])
-            return self._dist_metric(data)[0, 1]
+            points = np.vstack([x, y])
+            return self._dist_metric(points)[0, 1]
 
         dists = cdist(data, anchors, metric=_helper)
         assignment = np.argmin(dists, axis=1)
