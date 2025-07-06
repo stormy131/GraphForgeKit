@@ -1,64 +1,59 @@
-from typing import Any, Type, Iterator
-from pathlib import Path
+from typing import Iterator
+from itertools import chain
 
 import pandas as pd
 from torch_geometric.nn import Linear
+from torch.nn import ReLU
 
 from resources import CONVOLUTIONS, STRATEGIES
-from schema.network import NetworkConfig
 from schema.data import EnhancerData
-from schema.edges import GraphSetup
-from schema.configuration import InputConfig, GNNConfig
+from schema.task import Task
+from schema.configs import InputConfig, GNNConfig, NetworkConfig
 
 
-# TODO: add activation injection
 def parse_layers(gnn_config: GNNConfig, input_dims: int) -> NetworkConfig:
-    def _helper(layer_cls: Type, scheme: list[int]):
-        layers = [
-            layer_cls(i_dim, o_dim)
-            for i_dim, o_dim in zip(scheme, scheme[1:])
-        ]
+    schema = [input_dims] + gnn_config.encoder_schema
+    encoder_layers = [
+        (
+            CONVOLUTIONS[gnn_config.convolution](i_dim, o_dim),
+            "x, edge_index -> x"
+        )
+        for i_dim, o_dim in zip(schema, schema[1:])
+    ]
 
-        return layers
+    schema = schema[-1:] + gnn_config.estimator_schema
+    estimator_layers = list(chain.from_iterable([
+        (Linear(i_dim, o_dim), ReLU())
+        for i_dim, o_dim in zip(schema, schema[1:])
+    ]))
 
-    encoder_layers = _helper(
-        CONVOLUTIONS[gnn_config.convolution],
-        [input_dims] + gnn_config.encoder_schema
-    )
-    estimator_layers = _helper(
-        Linear,
-        gnn_config.encoder_schema[-1:] + gnn_config.estimator_schema
-    )
-
-    return NetworkConfig(
-        encoder=encoder_layers,
-        estimator=estimator_layers,
-    )
+    return NetworkConfig(encoder=encoder_layers, estimator=estimator_layers[:-1])
 
 
-def parse_edge_strategies(raw: pd.DataFrame, config: InputConfig) -> Iterator[GraphSetup]:
-    target_idx = config.task.target_idx
-    for strategy in config.edges:
-        assert strategy["type"] in STRATEGIES, "Specified strategy is not available."
-
-        builder = STRATEGIES[strategy["type"]](**strategy["kwargs"])
-        is_excluded = strategy["spatial"]["exclude"]
-        spatial_idx = strategy["spatial"]["idx"] or range(1, raw.shape[1])
-
-        spatial_cols, target_col = (
-            [raw.columns[i] for i in spatial_idx],
-            raw.columns[target_idx],
+def parse_tasks(raw: pd.DataFrame, config: InputConfig) -> Iterator[Task]:
+    for task in config.tasks:
+        strategy = STRATEGIES[task.type](**task.kwargs)
+        target_idx = task.target_idx
+        spatial_idx = (
+            task.spatial_idx or
+            [i for i in range(raw.shape[1]) if i != target_idx]
         )
 
         features, spatial, target = (
-            raw.drop(columns=[target_col, *(spatial_cols if is_excluded else [])]),
-            raw[spatial_cols],
-            raw[target_col]
+            raw.drop(
+                columns=[
+                    raw.columns[target_idx],
+                    *raw.columns[spatial_idx]
+                ], 
+                axis=1,
+            ),
+            raw[spatial_idx],
+            raw[target_idx]
         )
 
-        yield GraphSetup(
-            builder=builder,
-            spatial=EnhancerData(
+        yield Task(
+            strategy=strategy,
+            data=EnhancerData(
                 features=features.to_numpy(),
                 spatial=spatial.to_numpy(),
                 target=target.to_numpy().flatten(),

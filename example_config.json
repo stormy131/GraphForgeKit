@@ -1,43 +1,35 @@
 {
-    "task": {
-        "type": "regression",
-        "target_idx": 0
-    },
+    "task_type": "regression", 
 
     "gnn_config": {
         "encoder_schema":   [256, 256],
         "estimator_schema": [128, 128, 7],
-        "convolution":      "GCN"
+        "convolution":      "SAGE"
     },
 
-    "edges": [
-        
-
+    "tasks": [
         {
             "type": "Anchor",
-            "spatial": {
-                "idx": null,
-                "exclude": false
-            },
+            "spatial_idx": [1, 2],
+            "target_idx": 0,
 
             "kwargs": {
                 "cluster_sample_rate": 0.7,
-                "cache_id": "cora_repr",
+                "cache_id": "melbourne_anchor",
                 "cache_dir": "./data/cache/edges"
             }
         },
 
         {
             "type": "Threshold",
-            "spatial": {
-                "idx": null,
-                "exclude": false
-            },
+            "spatial_idx": [1, 2],
+            "target_idx": 0,
 
             "kwargs": {
                 "max_dist": 5,
+                "dist_metric": "Haversine",
                 "subsample_rate": 0.5,
-                "cache_id": "cora_dist",
+                "cache_id": "melbourne_threshold",
                 "cache_dir": "./data/cache/edges"
             }
         }

@@ -16,7 +16,7 @@ class BaseStrategy(ABC):
         cache_dir.mkdir(exist_ok=True, parents=True)
 
         self.slug = cache_id if cache_id else type(self).__name__
-        self.cache_path = cache_dir / f"{self.slug}.graph.pt"
+        self.cache_path = cache_dir / f"{self.slug}.edges.pt"
 
     
     def subsample(self, edge_idx: np.ndarray, ratio: float = 1) -> np.ndarray:

@@ -6,18 +6,15 @@ from torch_geometric.nn import Sequential as GeomSequential
 from torch_geometric.loader import NeighborLoader, NodeLoader
 from tqdm import tqdm
 
-from configs import TrainConfig
-from schema.network import NetworkConfig
+from schema.configs import TrainConfig
+from schema.configs.network import NetworkConfig
 from gnn._encoder import GraphConvEncoder
 
 
 # TODO: docstring
 class GNN:
-    _gnn: Module                = None
-    _gnn_config: NetworkConfig    = None
-    _layers: list[Module]       = []
-
     def __init__(self, gnn_config: NetworkConfig, train_config: TrainConfig):
+        self._logs = []
         self._gnn_config = gnn_config
         self._train_config = train_config
         
@@ -27,7 +24,6 @@ class GNN:
             [(self._encoder, "x, edge_index -> x")] + gnn_config.estimator,
         )
 
-    # TODO: ?
     def _make_loader(self, data: GeomData) -> NodeLoader:
         return NeighborLoader(
             data=data,
@@ -40,43 +36,55 @@ class GNN:
     # TODO: optional caching
     @property
     def encoder(self) -> Module:
-        assert self._gnn, "GNN was not trained yet."
+        assert len(self._logs) > 0, "GNN was not trained yet."
         return self._encoder
+    
+    @property
+    def train_logs(self) -> list[tuple[float, float]]:
+        assert len(self._logs) > 0, "GNN was not trained yet."
+        return self._logs
 
-    def train(self, train_data: GeomData, val_data: GeomData, *, verbose: bool=False):
+
+    def train(self, data: GeomData, *, verbose: bool=False):
+        train_loader = self._make_loader(data)
+        val_data = data.subgraph(data.val_mask)
+
         optim = Adam(self._gnn.parameters(), self._train_config.learn_rate)
-        train_loader = self._make_loader(train_data)
-
         pbar = tqdm(range(self._train_config.n_epochs), desc="GNN training", unit="epoch")
-        for epoch in pbar:
+        for _ in pbar:
             self._gnn.train()
+            total_train_loss = 0
 
             for batch in train_loader:
                 optim.zero_grad()
                 out = self._gnn(batch.x, batch.edge_index)
 
-                y = batch.y[:batch.batch_size].squeeze()
-                out = out[:batch.batch_size].squeeze()
+                y = batch.y[:batch.batch_size].squeeze()#.reshape(-1, 1)
+                out = out[:batch.batch_size].squeeze()#.reshape(-1, 1)
                 loss = self._train_config.loss_criteria(out, y)
 
                 loss.backward()
                 optim.step()
+                total_train_loss += loss.item() * batch.x.shape[0]
 
-            val_predicts = self.predict(val_data.x, val_data.edge_index).squeeze()
+            val_predicts = self.predict(val_data.x, val_data.edge_index)
             with torch.no_grad():
-                val_loss = self._train_config.loss_criteria(val_predicts, val_data.y.squeeze())
-                pbar.set_postfix(val_loss=val_loss.item())
-            # if verbose:
-            #     self.test(val_data, prefix=f"Epoch = {epoch} | ")
+                val_loss = self._train_config.loss_criteria(val_predicts, val_data.y).item()
+                pbar.set_postfix(val_loss=val_loss)
+
+                self._logs.append((
+                    total_train_loss / data.train_mask.sum(),
+                    val_loss
+                ))
 
         return self
 
-    def test(self, test_data: GeomData, *, prefix: str = "") -> None:
-        assert self._gnn, "GNN was not trained yet."
+    # def test(self, test_data: GeomData, *, prefix: str = "") -> None:
+    #     assert self._gnn, "GNN was not trained yet."
 
-        predicts = self.predict(test_data.x, test_data.edge_index)
-        loss = self._train_config.loss_criteria(predicts, test_data.y)
-        print(prefix + f"Loss = {loss:.4e}")
+    #     predicts = self.predict(test_data.x, test_data.edge_index)
+    #     loss = self._train_config.loss_criteria(predicts, test_data.y)
+    #     print(prefix + f"Loss = {loss:.4e}")
     
     def predict(self, data: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         assert self._gnn, "GNN was not trained yet."

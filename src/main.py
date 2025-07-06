@@ -5,23 +5,20 @@ from argparse import ArgumentParser, Namespace
 import numpy as np
 import pandas as pd
 from torch import from_numpy
-from torch.nn import ReLU, Linear
+from torch.nn import ReLU, Linear, Dropout
 from torch_geometric.nn import SAGEConv
-from sklearn.metrics import mean_squared_error
+from tabulate import tabulate
 
 from enhancer import Enhancer
 from strategies import AnchorStrategy, ThresholdStrategy, KNNStrategy, GridStrategy
-from configs import PathConfig, TrainConfig
+from schema.configs import PathConfig, TrainConfig, NetworkConfig, InputConfig
 from schema.data import EnhancerData
-from schema.network import NetworkConfig
-from schema.configuration import InputConfig
-from utils.parsing import parse_layers, parse_edge_strategies
-from utils.metrics import euclid_dist
+from utils.parsing import parse_layers, parse_tasks
 
 
 def test():
     path_config = PathConfig()
-    path_config.target_data = path_config.data_root / "processed/np/Melbourne_housing_FULL.npz"
+    path_config.target_data = path_config.data_root / "processed/np/synth_smooth.npz"
     with open(path_config.target_data, "rb") as f:
         unpacked = np.load(f)
 
@@ -34,9 +31,11 @@ def test():
 
     train_config = TrainConfig(n_epochs=5)
     gnn_setup = NetworkConfig(
-        encoder=[
-            SAGEConv(data.features.shape[1], 256),
-            SAGEConv(256, 256),
+        encoder = [
+            (SAGEConv(data.features.shape[1], 256), "x, edge_index -> x"),
+            (Dropout(p=0.3), "x -> x"),
+            (SAGEConv(256, 256), "x, edge_index -> x"),
+            (Dropout(p=0.3), "x -> x"),
         ],
         estimator=[
             Linear(256, 128),
@@ -48,51 +47,38 @@ def test():
     )
 
     strategies = [
-        # (
-        #     ThresholdStrategy(
-        #         max_dist=5,
-        #         cache_dir=path_config.edge_cache,
-        #         cache_id="cora_dist",
-        #     ),
-        #     data,
-        # ),
-        # (
-        #     AnchorStrategy(
-        #         cluster_sample_rate=0.7,
-        #         cache_dir=path_config.edge_cache,
-        #         cache_id="cora_repr",
-        #     ),
-        #     data,
-        # ),
-        # (
-        #     KNNStrategy(
-        #         K=5,
-        #         dist_metric=euclid_dist,
-        #         cache_dir=path_config.edge_cache,
-        #         cache_id="cora_knn",
-        #     ),
-        #     data,
-        # ),
         (
-            GridStrategy(
-                intra_edge_ratio=0.01,
-                source_inter_ratio=0.01,
-                k_connectivity=3,
-                bins=4,
+            ThresholdStrategy(
+                max_dist=5,
                 cache_dir=path_config.edge_cache,
-                cache_id="cora_grid",
+                cache_id="synthetic_threshold_3",
+            ),
+            data,
+        ),
+        (
+            AnchorStrategy(
+                cluster_sample_rate=0.7,
+                cache_dir=path_config.edge_cache,
+                cache_id="synthetic_anchors_100",
             ),
             data,
         ),
     ]
 
-    result = Enhancer.compare_strategies(gnn_setup, train_config, strategies)
-    print(result.get_comparison([mean_squared_error]))
+    result = Enhancer.process_tasks(gnn_setup, train_config, strategies).get_comparison()
+    metrics_schema = list(result.values())[0].keys()
+
+    header = ["Option"] + list(metrics_schema)
+    rows = []
+    for option, measurements in result.items():
+        rows.append([option, *measurements.values()])
+
+    print(tabulate(rows, headers=header))
 
 
 parser = ArgumentParser(prog="Ehancer")
 parser.add_argument("-m", "--mode", default="compare", choices=["transform", "compare"],
-help="determines Enhancer inference mode")
+                    help="determines Enhancer inference mode")
 parser.add_argument("-c", "--config-path", default="./config.json",
                     help="path to the system's inference configuration")
 parser.add_argument("-i", "--input-path", default="./data/data.csv",
@@ -114,32 +100,44 @@ def main(args: Namespace):
         config = json.load(f)
 
     try:
-        config = InputConfig(config)
+        config = InputConfig(**config)
     except ValueError as e:
         print("Error validating configuration:", e)
 
-    raw_data = pd.read_csv(input_path)
+    raw_data = pd.read_csv(input_path, header=None)
     input_size = raw_data.shape[1] - 1
     train_config = TrainConfig()
 
     # NOTE: NO EAGER!
-    strategies_iter = parse_edge_strategies(raw_data, config)
-    layers = parse_layers(config.gnn_config, input_size)
+    tasks_iter = parse_tasks(raw_data, config)
+    gnn_config = parse_layers(config.gnn_config, input_size)
     if args.mode == "transform":
         transformed = []
-        for builder, data in strategies_iter:
-            e = Enhancer(layers, train_config, builder)
+        for strategy, data in tasks_iter:
+            e = Enhancer(gnn_config, train_config, strategy)
             e.fit(data)
             transformed.append( e.transform(data) )
 
         np.savez(output_path / "output.npz", *transformed)
     else:
-        result = Enhancer.compare_strategies(layers, strategies_iter)
-        print(result.get_comparison())
+        reporter = Enhancer.process_tasks(
+            gnn_config,
+            train_config,
+            tasks_iter,
+        )
+        result = reporter.get_comparison()
+        
+        metrics_schema = list(result.values())[0].keys()
+        header = ["Option"] + list(metrics_schema)
+        rows = []
+        for option, measurements in result.items():
+            rows.append([option, *measurements.values()])
+
+        print(tabulate(rows, headers=header))
 
 
 if __name__ == "__main__":
-    test()
+    # test()
 
-    # args = parser.parse_args()
-    # main(args)
+    args = parser.parse_args()
+    main(args)
