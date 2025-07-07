@@ -44,7 +44,6 @@ class GNN:
         assert len(self._logs) > 0, "GNN was not trained yet."
         return self._logs
 
-
     def train(self, data: GeomData, *, verbose: bool=False):
         train_loader = self._make_loader(data)
         val_data = data.subgraph(data.val_mask)
@@ -59,17 +58,19 @@ class GNN:
                 optim.zero_grad()
                 out = self._gnn(batch.x, batch.edge_index)
 
-                y = batch.y[:batch.batch_size].squeeze()#.reshape(-1, 1)
-                out = out[:batch.batch_size].squeeze()#.reshape(-1, 1)
-                loss = self._train_config.loss_criteria(out, y)
+                y, out = batch.y[:batch.batch_size], out[:batch.batch_size]
+                # Regression task
+                if len(out.shape) > 1 and out.shape[1] == 1:
+                    y, out = y.squeeze(), out.squeeze()
 
+                loss = self._train_config.loss_criteria(out, y)
                 loss.backward()
                 optim.step()
                 total_train_loss += loss.item() * batch.x.shape[0]
 
-            val_predicts = self.predict(val_data.x, val_data.edge_index)
+            val_predicts = self.predict(val_data.x, val_data.edge_index).squeeze()
             with torch.no_grad():
-                val_loss = self._train_config.loss_criteria(val_predicts, val_data.y).item()
+                val_loss = self._train_config.loss_criteria(val_predicts, val_data.y.squeeze()).item()
                 pbar.set_postfix(val_loss=val_loss)
 
                 self._logs.append((
@@ -78,13 +79,6 @@ class GNN:
                 ))
 
         return self
-
-    # def test(self, test_data: GeomData, *, prefix: str = "") -> None:
-    #     assert self._gnn, "GNN was not trained yet."
-
-    #     predicts = self.predict(test_data.x, test_data.edge_index)
-    #     loss = self._train_config.loss_criteria(predicts, test_data.y)
-    #     print(prefix + f"Loss = {loss:.4e}")
     
     def predict(self, data: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         assert self._gnn, "GNN was not trained yet."

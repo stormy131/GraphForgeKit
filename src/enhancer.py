@@ -32,9 +32,6 @@ class Enhancer:
         
         graph = Enhancer._setup_data(data.features, data.target, edges)
         graph = self._node_splitter(graph)
-        # train_subgraph = graph.subgraph(graph.train_mask)
-        # val_subgraph = graph.subgraph(graph.val_mask)
-
         self._encoder = gnn.train(graph, verbose=verbose).encoder
 
         return gnn, graph
@@ -115,7 +112,7 @@ class Enhancer:
 
         runs = []
         for strategy in strategies:
-            train_edges = Enhancer._build_edges(train_data.spatial, strategy)
+            train_edges = Enhancer._build_edges(train_data.spatial, strategy, True)
             train_graph.edge_index = train_edges
             test_edges = Enhancer._build_edges(test_data.spatial, strategy, True)
             test_graph.edge_index = test_edges
