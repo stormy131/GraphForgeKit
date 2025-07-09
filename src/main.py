@@ -103,6 +103,7 @@ def main(args: Namespace):
         config = InputConfig(**config)
     except ValueError as e:
         print("Error validating configuration:", e)
+        return
 
     raw_data = pd.read_csv(input_path, header=None)
     input_size = raw_data.shape[1] - 1

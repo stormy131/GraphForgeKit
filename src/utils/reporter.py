@@ -84,11 +84,13 @@ class RunReporter:
 
     def plot_train_logs(self, save_to: Path | None = None) -> None:
         n_runs = len(self._runs)
-        fig, axs = plt.subplots(n_runs, 1, figsize=(12, 4 * n_runs))
+        # fig, axs = plt.subplots(n_runs, 1, figsize=(12, 4 * n_runs))
+        fig, axs = plt.subplots(n_runs, 2, figsize=(12, 4 * n_runs))
         if n_runs == 1:
             axs = np.expand_dims(axs, axis=0)
 
         for i, (name, actual, predicted, _, train_logs) in enumerate(self._runs):
+            # ax_loss = axs[i]
             ax_loss = axs[i, 0]
             ax_reg = axs[i, 1]
             
@@ -105,19 +107,16 @@ class RunReporter:
             ax_loss.grid(True)
             
             # Regression plot: true vs predicted
-            # ax_reg.scatter(actual, predicted, alpha=0.6, edgecolor='k', label="model vs actual")
-            # min_val = min(actual.min(), predicted.min())
-            # max_val = max(actual.max(), predicted.max())
-            # ax_reg.plot([min_val, max_val], [min_val, max_val], "r--", label="Equality")
+            ax_reg.scatter(actual, predicted, alpha=0.6, edgecolor='k', label="model vs actual")
+            min_val = min(actual.min(), predicted.min())
+            max_val = max(actual.max(), predicted.max())
+            ax_reg.plot([min_val, max_val], [min_val, max_val], "r--", label="Equality")
 
-            # ax_reg.set_title(f"Run '{name}' - Regression plot")
-            # ax_reg.set_xlabel("Actual")
-            # ax_reg.set_ylabel("Predicted")
+            ax_reg.set_title(f"Run '{name}' - Regression plot")
+            ax_reg.set_xlabel("Actual")
+            ax_reg.set_ylabel("Predicted")
             ax_reg.legend()
             ax_reg.grid(True)
 
         plt.tight_layout()
-        if save_to:
-            plt.savefig(fig, fname=save_to)
-        else:
-            plt.show()
+        plt.savefig(fig, fname=save_to) if save_to else plt.show()

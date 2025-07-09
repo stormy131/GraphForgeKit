@@ -1,7 +1,7 @@
 from pydantic import BaseModel, field_validator
 from typing import List, Dict, Any, Literal
 
-from resources import CONVOLUTIONS, STRATEGIES
+from resources import CONVOLUTIONS, STRATEGIES, METRICS
 
 
 class GNNConfig(BaseModel):
@@ -11,8 +11,9 @@ class GNNConfig(BaseModel):
 
     @field_validator("convolution")
     def check_convolution(cls, v):
-        if v not in CONVOLUTIONS:
-            raise ValueError(f"Graph convolution operator must be one of {CONVOLUTIONS}")
+        assert v in CONVOLUTIONS, (
+            f"Graph convolution operator must be one of {list(CONVOLUTIONS.keys())}"
+        )
         
         return v
 
@@ -24,9 +25,24 @@ class TaskConfig(BaseModel):
 
     @field_validator("type")
     def check_edge_type(cls, v):
-        if v not in STRATEGIES:
-            raise ValueError(f"Strategy must be one of {STRATEGIES}")
+        assert v in STRATEGIES, (
+            f"Strategy must be one of {list(STRATEGIES.keys())}"
+        )
+        
         return v
+    
+    @field_validator("kwargs")
+    def check_kwargs(cls, v):
+        result = {}
+        for key in v:
+            if key == "dist_metric":
+                assert v[key] in METRICS, f"Distance metric must be one of {list(METRICS.keys())}"
+                result[key] = METRICS[v[key]]
+                continue
+
+            result[key] = v[key]
+
+        return result
 
 
 class InputConfig(BaseModel):

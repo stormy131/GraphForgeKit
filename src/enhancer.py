@@ -23,7 +23,7 @@ class Enhancer:
         self._edge_strategy = strategy
         self._node_splitter = RandomNodeSplit(
             num_val=train_config.val_ratio,
-            num_test=0,
+            num_test=train_config.test_ratio,
         )
 
     def fit(self, data: EnhancerData, *, verbose: bool = False) -> tuple[GNN, GeomData]:
@@ -62,10 +62,11 @@ class Enhancer:
             y=target,
         )
 
-        assert graph_data.validate(raise_on_error=True), "Constructed graph is invalid."
+        assert graph_data.validate(raise_on_error=False), (
+            "Constructed graph is invalid."
+        )
         return graph_data
     
-    # TODO: reg & class separation
     @classmethod
     def process_tasks(
         cls,

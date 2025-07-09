@@ -53,6 +53,7 @@ class GNN:
         for _ in pbar:
             self._gnn.train()
             total_train_loss = 0
+            total_size = 0
 
             for batch in train_loader:
                 optim.zero_grad()
@@ -67,14 +68,16 @@ class GNN:
                 loss.backward()
                 optim.step()
                 total_train_loss += loss.item() * batch.x.shape[0]
+                total_size += batch.x.shape[0]
 
-            val_predicts = self.predict(val_data.x, val_data.edge_index).squeeze()
+            self._gnn.eval()
             with torch.no_grad():
+                val_predicts = self.predict(val_data.x, val_data.edge_index).squeeze()
                 val_loss = self._train_config.loss_criteria(val_predicts, val_data.y.squeeze()).item()
                 pbar.set_postfix(val_loss=val_loss)
 
                 self._logs.append((
-                    total_train_loss / data.train_mask.sum(),
+                    total_train_loss / total_size,
                     val_loss
                 ))
 

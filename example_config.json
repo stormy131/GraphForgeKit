@@ -1,35 +1,22 @@
 {
-    "task_type": "regression", 
+    "problem_type": "regression", 
 
     "gnn_config": {
         "encoder_schema":   [256, 256],
-        "estimator_schema": [128, 128, 7],
+        "estimator_schema": [128, 128, 1],
         "convolution":      "SAGE"
     },
 
     "tasks": [
         {
-            "type": "Anchor",
+            "type": "KNN",
             "spatial_idx": [1, 2],
             "target_idx": 0,
 
             "kwargs": {
-                "cluster_sample_rate": 0.7,
-                "cache_id": "melbourne_anchor",
-                "cache_dir": "./data/cache/edges"
-            }
-        },
-
-        {
-            "type": "Threshold",
-            "spatial_idx": [1, 2],
-            "target_idx": 0,
-
-            "kwargs": {
-                "max_dist": 5,
-                "dist_metric": "Haversine",
-                "subsample_rate": 0.5,
-                "cache_id": "melbourne_threshold",
+                "K": 10,
+                "dist_metric": "Euclidean",
+                "cache_id": "melbourne_knn",
                 "cache_dir": "./data/cache/edges"
             }
         }

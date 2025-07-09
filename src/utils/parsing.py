@@ -2,8 +2,10 @@ from typing import Iterator
 from itertools import chain
 
 import pandas as pd
-from torch_geometric.nn import Linear
+import numpy as np
+from torch import from_numpy
 from torch.nn import ReLU
+from torch_geometric.nn import Linear
 
 from resources import CONVOLUTIONS, STRATEGIES
 from schema.data import EnhancerData
@@ -40,13 +42,7 @@ def parse_tasks(raw: pd.DataFrame, config: InputConfig) -> Iterator[Task]:
         )
 
         features, spatial, target = (
-            raw.drop(
-                columns=[
-                    raw.columns[target_idx],
-                    *raw.columns[spatial_idx]
-                ], 
-                axis=1,
-            ),
+            raw.drop(columns=raw.columns[target_idx], axis=1),
             raw[spatial_idx],
             raw[target_idx]
         )
@@ -54,9 +50,9 @@ def parse_tasks(raw: pd.DataFrame, config: InputConfig) -> Iterator[Task]:
         yield Task(
             strategy=strategy,
             data=EnhancerData(
-                features=features.to_numpy(),
-                spatial=spatial.to_numpy(),
-                target=target.to_numpy().flatten(),
+                features    = from_numpy(features.to_numpy().astype(np.float32)),
+                spatial     = from_numpy(spatial.to_numpy().astype(np.float32)),
+                target      = from_numpy(target.to_numpy().astype(np.float32).flatten()),
             ),
         )
 

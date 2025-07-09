@@ -18,7 +18,7 @@ from utils.metrics import euclid_dist, DistanceMetric
 class AnchorStrategy(BaseStrategy):
     def __init__(
         self,
-        n_repr: int = 100,
+        n_clusters: int = 100,
         dist_metric: DistanceMetric = euclid_dist,
         cluster_sample_rate: float = 1,
         **kwargs: dict[str, Any],
@@ -26,7 +26,7 @@ class AnchorStrategy(BaseStrategy):
         super().__init__(**kwargs)
 
         self._kmeans = KMeans(
-            n_clusters=n_repr,
+            n_clusters=n_clusters,
             max_iter=100_000,
             init="k-means++",
             random_state=13,
