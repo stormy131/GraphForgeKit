@@ -17,6 +17,7 @@ class GNNConfig(BaseModel):
         
         return v
 
+
 class TaskConfig(BaseModel):
     type: str
     spatial_idx: List[int]
@@ -33,19 +34,15 @@ class TaskConfig(BaseModel):
     
     @field_validator("kwargs")
     def check_kwargs(cls, v):
-        result = {}
-        for key in v:
-            if key == "dist_metric":
-                assert v[key] in METRICS, f"Distance metric must be one of {list(METRICS.keys())}"
-                result[key] = METRICS[v[key]]
-                continue
-
-            result[key] = v[key]
-
-        return result
+        if "dist_metric" in v:
+            assert v["dist_metric"] in METRICS, (
+                f"Distance metric must be one of {list(METRICS.keys())}."
+            )
+        
+        return v
 
 
 class InputConfig(BaseModel):
-    task_type: Literal["regression", "classification"]
+    problem_type: Literal["regression", "classification"]
     gnn_config: GNNConfig
     tasks: List[TaskConfig]

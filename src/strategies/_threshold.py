@@ -1,7 +1,3 @@
-"""
-TODO
-"""
-
 from typing import Any
 
 import torch
@@ -25,7 +21,6 @@ class ThresholdStrategy(BaseStrategy):
         self._dist_metric = dist_metric
         self._dist_threshold = max_dist
         self._subsample_rate = subsample_rate
-
 
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         # NOTE: N - number of vertices, M - number of edges

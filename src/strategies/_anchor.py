@@ -1,7 +1,3 @@
-"""
-TODO:
-"""
-
 from math import ceil
 from typing import Any
 
@@ -34,7 +30,6 @@ class AnchorStrategy(BaseStrategy):
         self._dist_metric = dist_metric
         self._cluster_sample = cluster_sample_rate
 
-
     def _make_cluster_edges(self, cluster_assigned: np.ndarray) -> np.ndarray:
         sorted_idx = np.argsort(cluster_assigned)
         sorted_clusters = cluster_assigned[sorted_idx]
@@ -65,7 +60,6 @@ class AnchorStrategy(BaseStrategy):
         source = np.concatenate(source)
         dest = np.concatenate(dest)
         return np.stack([source, dest], axis=1)
-
 
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         self._kmeans.fit(data)

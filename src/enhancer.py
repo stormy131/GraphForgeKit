@@ -32,7 +32,7 @@ class Enhancer:
         
         graph = Enhancer._setup_data(data.features, data.target, edges)
         graph = self._node_splitter(graph)
-        self._encoder = gnn.train(graph, verbose=verbose).encoder
+        self._encoder = gnn.train(graph).encoder
 
         return gnn, graph
 
@@ -82,7 +82,7 @@ class Enhancer:
             generated_edges = graph.edge_index
             test_graph = graph.subgraph(graph.test_mask)
 
-            output = gnn.predict(test_graph.x, test_graph.edge_index).numpy()
+            output = gnn.predict(test_graph.x, test_graph.edge_index).flatten()
             runs.append( (strategy.slug, test_graph.y, output, generated_edges, gnn.train_logs) )
 
         return RunReporter(runs)
@@ -125,7 +125,7 @@ class Enhancer:
                 raise ValueError(f"Strategy [{strategy.slug}] generated corrupted edge index")
 
             gnn = GNN(gnn_config, train_config).train(train_graph)
-            output = gnn.predict(test_graph.x, test_graph.edge_index).numpy()
+            output = gnn.predict(test_graph.x, test_graph.edge_index).flatten()
             runs.append( (strategy.slug, test_graph.y, output, train_edges, gnn.train_logs) )
 
         return RunReporter(runs)

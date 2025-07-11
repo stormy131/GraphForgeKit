@@ -67,8 +67,11 @@ class RunReporter:
         if graph_metrics is None: graph_metrics = []
 
         metric_names = (
-            [m.__name__ for m in chain(predict_metrics, graph_metrics)] +
-            list(self._default_graph_metrics.keys())
+            [
+                m.__name__ if "__name__" in dir(m) else str(m)
+                for m in chain(predict_metrics, graph_metrics)
+            ]
+            + list(self._default_graph_metrics.keys())
         )
 
         self._metrics_measured = self._compute_metrics(
@@ -76,7 +79,6 @@ class RunReporter:
             graph_metrics + list(self._default_graph_metrics.values())
         )
 
-        # return tabulate(self._metrics_measured, headers=["Option", *metric_names])
         return {
             option_name: dict(zip(metric_names, measured))
             for option_name, measured in self._metrics_measured
@@ -84,16 +86,10 @@ class RunReporter:
 
     def plot_train_logs(self, save_to: Path | None = None) -> None:
         n_runs = len(self._runs)
-        # fig, axs = plt.subplots(n_runs, 1, figsize=(12, 4 * n_runs))
-        fig, axs = plt.subplots(n_runs, 2, figsize=(12, 4 * n_runs))
-        if n_runs == 1:
-            axs = np.expand_dims(axs, axis=0)
+        fig, axs = plt.subplots(n_runs, 1, figsize=(12, 4 * n_runs))
 
-        for i, (name, actual, predicted, _, train_logs) in enumerate(self._runs):
-            # ax_loss = axs[i]
-            ax_loss = axs[i, 0]
-            ax_reg = axs[i, 1]
-            
+        for i, (name, _, _, _, train_logs) in enumerate(self._runs):
+            ax_loss = axs[i]
             # Plot train and val loss
             train_losses, val_losses = zip(*train_logs)
             epochs = range(1, len(train_logs) + 1)
@@ -105,18 +101,44 @@ class RunReporter:
             ax_loss.set_ylabel("Loss")
             ax_loss.legend()
             ax_loss.grid(True)
-            
-            # Regression plot: true vs predicted
-            ax_reg.scatter(actual, predicted, alpha=0.6, edgecolor='k', label="model vs actual")
-            min_val = min(actual.min(), predicted.min())
-            max_val = max(actual.max(), predicted.max())
-            ax_reg.plot([min_val, max_val], [min_val, max_val], "r--", label="Equality")
-
-            ax_reg.set_title(f"Run '{name}' - Regression plot")
-            ax_reg.set_xlabel("Actual")
-            ax_reg.set_ylabel("Predicted")
-            ax_reg.legend()
-            ax_reg.grid(True)
 
         plt.tight_layout()
         plt.savefig(fig, fname=save_to) if save_to else plt.show()
+
+    # NOTE: helper implementation with regression plots
+    # def plot_train_logs(self, save_to: Path | None = None) -> None:
+    #     n_runs = len(self._runs)
+    #     fig, axs = plt.subplots(n_runs, 2, figsize=(12, 4 * n_runs))
+    #     if n_runs == 1:
+    #         axs = np.expand_dims(axs, axis=0)
+
+    #     for i, (name, actual, predicted, _, train_logs) in enumerate(self._runs):
+    #         ax_loss = axs[i, 0]
+    #         ax_reg = axs[i, 1]
+            
+    #         # Plot train and val loss
+    #         train_losses, val_losses = zip(*train_logs)
+    #         epochs = range(1, len(train_logs) + 1)
+            
+    #         ax_loss.plot(epochs, train_losses, label="Train Loss")
+    #         ax_loss.plot(epochs, val_losses, label="Val Loss")
+    #         ax_loss.set_title(f"Run '{name}' - Loss curves")
+    #         ax_loss.set_xlabel("Epoch")
+    #         ax_loss.set_ylabel("Loss")
+    #         ax_loss.legend()
+    #         ax_loss.grid(True)
+            
+    #         # Regression plot: true vs predicted
+    #         ax_reg.scatter(actual, predicted, alpha=0.6, edgecolor='k', label="model vs actual")
+    #         min_val = min(actual.min(), predicted.min())
+    #         max_val = max(actual.max(), predicted.max())
+    #         ax_reg.plot([min_val, max_val], [min_val, max_val], "r--", label="Equality")
+
+    #         ax_reg.set_title(f"Run '{name}' - Regression plot")
+    #         ax_reg.set_xlabel("Actual")
+    #         ax_reg.set_ylabel("Predicted")
+    #         ax_reg.legend()
+    #         ax_reg.grid(True)
+
+    #     plt.tight_layout()
+    #     plt.savefig(fig, fname=save_to) if save_to else plt.show()

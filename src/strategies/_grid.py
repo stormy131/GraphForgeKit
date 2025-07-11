@@ -12,7 +12,6 @@ from strategies._base import BaseStrategy
 EPS = 1e-9
 
 
-# NOTE: SCALING
 class GridStrategy(BaseStrategy):
     def __init__(
         self,
@@ -30,7 +29,6 @@ class GridStrategy(BaseStrategy):
         self._inter_k = k_connectivity
         self._dim_bounds = bounds
         self._dim_bin_count = bins
-
 
     def _setup(self, data: np.ndarray) -> None:
         n_features = data.shape[1]
@@ -54,7 +52,6 @@ class GridStrategy(BaseStrategy):
             "Specified dimension bounds must match data dimensionality"
         )
 
-    
     def _generate_intra(self, cell_to_nodes: dict[tuple, int]) -> torch.Tensor:
         edges = []
 
@@ -76,7 +73,6 @@ class GridStrategy(BaseStrategy):
             edges.extend(zip(sample_src, sample_dst))
 
         return torch.tensor(edges, dtype=torch.long)
-
 
     def _generate_inter(self, cell_to_nodes: dict[tuple, int], dim: int) -> torch.Tensor:
         edges = []
@@ -110,7 +106,6 @@ class GridStrategy(BaseStrategy):
                 edges.extend(edge_pairs)
 
         return torch.tensor(np.array(edges), dtype=torch.long)
-
 
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         self._setup(data)

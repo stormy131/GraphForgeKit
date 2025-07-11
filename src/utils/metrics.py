@@ -38,7 +38,7 @@ def euclid_dist(data: np.ndarray) -> np.ndarray:
 
     return dists
 
- 
+
 @njit(parallel=True)
 def cosine_dist(data: np.ndarray) -> np.ndarray:
     N = data.shape[0]

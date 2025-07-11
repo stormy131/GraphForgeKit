@@ -13,7 +13,6 @@ class KNNStrategy(BaseStrategy):
         self._K = K
         self._dist_metric = dist_metric
 
-
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         dists = self._dist_metric(data.numpy())
         sorted_idx = np.argsort(dists, axis=1)

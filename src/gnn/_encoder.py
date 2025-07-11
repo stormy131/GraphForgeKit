@@ -7,9 +7,6 @@ class GraphConvEncoder(Module):
     def __init__(self, encoder_layers: list[Module]):
         super().__init__()
         self.encoder = GeomSequential("x, edge_index", encoder_layers)
-        #     "x, edge_index",
-        #     [(layer, "x, edge_index -> x") for layer in encoder_layers]
-        # )
 
     def forward(self, x: Tensor, edge_index: Tensor):
         return self.encoder(x, edge_index)

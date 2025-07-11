@@ -7,13 +7,13 @@ import pandas as pd
 from torch import from_numpy
 from torch.nn import ReLU, Linear, Dropout
 from torch_geometric.nn import SAGEConv
-from tabulate import tabulate
 
 from enhancer import Enhancer
-from strategies import AnchorStrategy, ThresholdStrategy, KNNStrategy, GridStrategy
-from schema.configs import PathConfig, TrainConfig, NetworkConfig, InputConfig
 from schema.data import EnhancerData
-from utils.parsing import parse_layers, parse_tasks
+from resources import LOSSES
+from utils.parsing import parse_layers, parse_tasks, parse_comparison_metrics
+from schema.configs import PathConfig, TrainConfig, NetworkConfig, InputConfig
+from strategies import AnchorStrategy, ThresholdStrategy, KNNStrategy, GridStrategy
 
 
 def test():
@@ -66,14 +66,7 @@ def test():
     ]
 
     result = Enhancer.process_tasks(gnn_setup, train_config, strategies).get_comparison()
-    metrics_schema = list(result.values())[0].keys()
-
-    header = ["Option"] + list(metrics_schema)
-    rows = []
-    for option, measurements in result.items():
-        rows.append([option, *measurements.values()])
-
-    print(tabulate(rows, headers=header))
+    print(parse_comparison_metrics(result))
 
 
 parser = ArgumentParser(prog="Ehancer")
@@ -107,7 +100,16 @@ def main(args: Namespace):
 
     raw_data = pd.read_csv(input_path, header=None)
     input_size = raw_data.shape[1] - 1
-    train_config = TrainConfig()
+
+    assert config.problem_type in LOSSES, (
+        f"""
+        Specified problem type {config.problem_type} is not supported.
+        Select one of {list(config.keys())}.
+        """
+    )
+    train_config = TrainConfig(
+        loss_criteria=LOSSES[config.problem_type],
+    )
 
     # NOTE: NO EAGER!
     tasks_iter = parse_tasks(raw_data, config)
@@ -120,21 +122,23 @@ def main(args: Namespace):
             transformed.append( e.transform(data) )
 
         np.savez(output_path / "output.npz", *transformed)
-    else:
+
+    elif args.mode == "compare":
         reporter = Enhancer.process_tasks(
             gnn_config,
             train_config,
             tasks_iter,
         )
-        result = reporter.get_comparison()
-        
-        metrics_schema = list(result.values())[0].keys()
-        header = ["Option"] + list(metrics_schema)
-        rows = []
-        for option, measurements in result.items():
-            rows.append([option, *measurements.values()])
 
-        print(tabulate(rows, headers=header))
+        result = reporter.get_comparison(
+            predict_metrics=[train_config.loss_criteria]
+        )
+        print(parse_comparison_metrics(result))
+
+    else:
+        raise ValueError(
+            "Invalid inference mode. Choose from ['compare', 'transform']"
+        )
 
 
 if __name__ == "__main__":

@@ -11,7 +11,6 @@ from schema.configs.network import NetworkConfig
 from gnn._encoder import GraphConvEncoder
 
 
-# TODO: docstring
 class GNN:
     def __init__(self, gnn_config: NetworkConfig, train_config: TrainConfig):
         self._logs = []
@@ -44,7 +43,7 @@ class GNN:
         assert len(self._logs) > 0, "GNN was not trained yet."
         return self._logs
 
-    def train(self, data: GeomData, *, verbose: bool=False):
+    def train(self, data: GeomData):
         train_loader = self._make_loader(data)
         val_data = data.subgraph(data.val_mask)
 
@@ -82,7 +81,7 @@ class GNN:
                 ))
 
         return self
-    
+
     def predict(self, data: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         assert self._gnn, "GNN was not trained yet."
 
