@@ -26,7 +26,7 @@ class Enhancer:
             num_test=train_config.test_ratio,
         )
 
-    def fit(self, data: EnhancerData, *, verbose: bool = False) -> tuple[GNN, GeomData]:
+    def fit(self, data: EnhancerData) -> tuple[GNN, GeomData]:
         gnn = GNN(self._gnn_config, self._train_config)
         edges = Enhancer._build_edges(data.spatial, self._edge_strategy)
         
@@ -77,7 +77,7 @@ class Enhancer:
         runs: list[np.ndarray] = []
         for strategy, data in tasks:
             self = cls(gnn_config, train_config, strategy)
-            gnn, graph = self.fit(data, verbose=False)
+            gnn, graph = self.fit(data)
 
             generated_edges = graph.edge_index
             test_graph = graph.subgraph(graph.test_mask)

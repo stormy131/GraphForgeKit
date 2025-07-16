@@ -16,7 +16,7 @@
             "kwargs": {
                 "K": 10,
                 "dist_metric": "Euclidean",
-                "cache_id": "melbourne_knn",
+                "cache_id": "test_knn",
                 "cache_dir": "./data/cache/edges"
             }
         }
