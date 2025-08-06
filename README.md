@@ -1,6 +1,6 @@
 # Enhancer system
 
-**Note:** This repository is a copy of my bachelor thesis. The user guide below is only a part of its text. The full thesis can be found at [here](linkhttps://is.cuni.cz/studium/dipl_st/index.php?id=b8580bff7674eb2b78bd0daccbf29a76&tid=1&do=xdownload&fid=130436322&did=278796&vdetailu=1).
+> **Note:** This repository is a copy of my bachelor thesis. The user guide below is only a part of its text. The full thesis can be found at [here](https://is.cuni.cz/studium/dipl_st/index.php?id=b8580bff7674eb2b78bd0daccbf29a76&tid=1&do=xdownload&fid=130436322&did=278796&vdetailu=1).
 
 The `Enhancer` system is designed to support both technical and non-technical users through two modes of operation. It can be used as a Python package by developers, allowing direct access to its internal components and customization of its behavior through code. For users without programming experience, the system also supports a standalone application mode, where all behavior is controlled through a structured configuration file. This dual-mode setup makes the system both flexible and accessible, allowing a wide range of users to apply it to their data without sacrificing control or robustness.
 
