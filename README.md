@@ -1,6 +1,6 @@
-# User manual
+# Enhancer system
 
-> **Note:** This repository is a copy of my bachelor thesis. The user guide below is only a part of its text. The full thesis can be found at [here](linkhttps://is.cuni.cz/studium/dipl_st/index.php?id=b8580bff7674eb2b78bd0daccbf29a76&tid=1&do=xdownload&fid=130436322&did=278796&vdetailu=1).
+**Note:** This repository is a copy of my bachelor thesis. The user guide below is only a part of its text. The full thesis can be found at [here](linkhttps://is.cuni.cz/studium/dipl_st/index.php?id=b8580bff7674eb2b78bd0daccbf29a76&tid=1&do=xdownload&fid=130436322&did=278796&vdetailu=1).
 
 The `Enhancer` system is designed to support both technical and non-technical users through two modes of operation. It can be used as a Python package by developers, allowing direct access to its internal components and customization of its behavior through code. For users without programming experience, the system also supports a standalone application mode, where all behavior is controlled through a structured configuration file. This dual-mode setup makes the system both flexible and accessible, allowing a wide range of users to apply it to their data without sacrificing control or robustness.
 
@@ -164,7 +164,7 @@ The next step involves specifying the edge-creation strategies to be evaluated. 
 
 A detailed explanation of each strategy, including an overview of its underlying mechanism, can be found in the [Strategies](#strategies) section. Configuration details and parameter descriptions for each strategy are provided in the [Resources Appendix](#resources-appendix).
 
-Alternatively, the package includes an abstract base class, `BaseStrategy`, which serves as the foundation for implementing custom strategies. Custom implementation must subclass `EdgeCreator` and implement its `__call__` method, which takes a feature matrix and returns an edge index. The returned index must be of a shape *$(2, N_{\textnormal{edges}})$*, where we represent each edge as a column of $(\textnormal{source\_idx}, \textnormal{destination\_idx})^T$ node indices. This format—commonly known as *the Coordinate (COO) format*—is required by the `PyG` framework, which is used internally for graph representation and modeling. To avoid redundant data transformations and ensure seamless integration, the same format is used throughout the system.
+Alternatively, the package includes an abstract base class, `BaseStrategy`, which serves as the foundation for implementing custom strategies. Custom implementations must subclass `BaseStrategy` and implement its `__call__` method, which takes a feature matrix and returns an edge index. The returned index must have shape *(2, N_edges)*, where each edge is represented as a column of `[source_idx, destination_idx]` node indices. This format—commonly known as the Coordinate (COO) format—is required by the `PyG` framework, which is used internally for graph representation and modeling. To avoid redundant data transformations and ensure seamless integration, the same format is used throughout the system.
 
 In addition, a separate `utils` submodule provides a set of distance metrics used as core building blocks within edge strategies. These include implementations of common metrics (e.g., Euclidean, cosine) and are designed to be reusable and composable. Detailed description of the metrics can be found in the [Metrics](#metrics) section.
 
